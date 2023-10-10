@@ -2,5 +2,8 @@
   "name": "fatten-up-plan",
   "version": "1.0.0",
   "license": "MIT",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
