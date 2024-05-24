@@ -5,7 +5,7 @@ const eslintConfigPrettier = require('eslint-config-prettier');
 
 module.exports = [
   {
-    ignores: ['*.js', 'dist'],
+    ignores: ['*.js', 'dist', 'migrations'],
   },
   {
     languageOptions: { globals: globals.browser },
