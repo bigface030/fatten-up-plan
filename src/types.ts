@@ -12,6 +12,9 @@ export interface CreateRecordPayload {
 
 export interface DeleteRecordPayload {}
 
+export interface ReadRecordPayload {
+  interval: string[];
+}
 interface CreateRecordResponse {
   status: 'success';
   type: 'create';
@@ -24,7 +27,14 @@ interface DeleteRecordResponse {
   payload: DeleteRecordPayload;
 }
 
-type SuccessResponse = CreateRecordResponse | DeleteRecordResponse;
+interface ReadRecordResponse {
+  status: 'success';
+  type: 'read';
+  action: string;
+  payload: ReadRecordPayload;
+}
+
+type SuccessResponse = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
 
 interface FailedResponse {
   status: 'failed';

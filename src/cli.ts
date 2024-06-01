@@ -1,9 +1,13 @@
 import 'dotenv/config';
 import { readFileSync } from 'fs';
+import dayjs from 'dayjs';
+import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import db, { checkDbVersion } from './db';
-import { CreateRecordPayload, TagConfig, ValidatedResponse } from './types';
+import { CreateRecordPayload, ReadRecordPayload, TagConfig, ValidatedResponse } from './types';
 import { COMMANDS } from './constants';
+
+dayjs.extend(customParseFormat);
 
 const channel_id = process.env.DB_TEST_CHANNEL_ID as string;
 const username = process.env.DB_ADMIN_USERNAME as string;
@@ -16,9 +20,7 @@ const dictionary: Record<string, string> = JSON.parse(readFileSync('src/dictiona
 
 const tags: Record<string, TagConfig> = JSON.parse(readFileSync('src/tags.json', 'utf-8'));
 
-const validateInput = (input: string): ValidatedResponse => {
-  const args = input.split(' ');
-
+const validateInput = (args: string[]): ValidatedResponse => {
   if (!dictionary[args[0]] && !tags[args[0]])
     return {
       status: 'failed',
@@ -32,6 +34,32 @@ const validateInput = (input: string): ValidatedResponse => {
       payload: {},
     };
 
+  if (dictionary[args[0]] === COMMANDS.LOOK_UP) {
+    const params = args.slice(1);
+    if (params.length < 1 || params.length > 2) {
+      return {
+        status: 'failed',
+        msg: 'Invalid params length',
+      };
+    }
+    const isValid = params.every((param) => dayjs(param, 'YYYYMMDD', true).isValid());
+    if (!isValid) {
+      return {
+        status: 'failed',
+        msg: 'Invalid params value',
+      };
+    }
+    return {
+      status: 'success',
+      type: 'read',
+      action: 'read_balance',
+      payload: {
+        interval: params.map((param) => dayjs(param).format('YYYY-MM-DD')),
+      },
+    };
+  }
+
+  // TODO: remove after all commands completed
   if (!tags[args[0]])
     return {
       status: 'failed',
@@ -42,6 +70,7 @@ const validateInput = (input: string): ValidatedResponse => {
     customized_tag = args[0],
     customized_classification = tags[args[0]].classification,
     amount = Math.abs(Number(args[1]));
+  // TODO: handle args length over 2
 
   if (isNaN(amount))
     return {
@@ -116,21 +145,46 @@ const deleteRecord = () => {
   );
 };
 
+const readRecord = async (payload: ReadRecordPayload) => {
+  const { interval } = payload;
+
+  let res;
+  if (interval.length > 1) {
+    res = await db.query(
+      `SELECT * FROM records
+      JOIN transactions ON records.id = transactions.record_id
+      WHERE accounting_date BETWEEN $1 AND $2`,
+      [interval[0], interval[1]],
+    );
+  } else {
+    res = await db.query(
+      `SELECT * FROM records
+      JOIN transactions ON records.id = transactions.record_id
+      WHERE accounting_date = $1`,
+      [interval[0]],
+    );
+  }
+  return res.rows;
+};
+
 prompt();
 
 process.stdin.setEncoding('utf-8');
 
 process.stdin.on('data', async (data: string) => {
-  const input = data.replace(/\s+/g, ' ').trim();
+  const args = data.replace(/\s+/g, ' ').trim().split(' ');
 
-  if (input === '.version') {
+  if (args[0] === '.version') {
     const result = await checkDbVersion();
     console.log(`DB version: ${result}`);
     return prompt();
   }
 
-  const result = validateInput(input);
-  if (result.status === 'failed') return prompt();
+  const result = validateInput(args);
+  if (result.status === 'failed') {
+    console.log(result.msg);
+    return prompt();
+  }
 
   const { type, payload } = result;
   if (type === 'create') {
@@ -139,6 +193,9 @@ process.stdin.on('data', async (data: string) => {
   } else if (type === 'delete') {
     await deleteRecord();
     console.log('Successfully delete!');
+  } else if (type === 'read') {
+    const res = await readRecord(payload);
+    console.log(res);
   }
 
   return prompt();
