@@ -3,42 +3,42 @@ export interface TagConfig {
   classification: string | null;
 }
 
-export interface CreateRecordPayload {
+export interface CreateRecordParams {
   activity: string;
   amount: number;
   customized_tag?: string;
   customized_classification?: string | null;
 }
 
-export interface DeleteRecordPayload {}
+export interface DeleteRecordParams {}
 
-export interface ReadRecordPayload {
+export interface ReadRecordParams {
   interval: string[];
 }
-interface CreateRecordResponse {
-  status: 'success';
+interface CreateRecordPayload {
   type: 'create';
-  payload: CreateRecordPayload;
+  params: CreateRecordParams;
 }
 
-interface DeleteRecordResponse {
-  status: 'success';
+interface DeleteRecordPayload {
   type: 'delete';
-  payload: DeleteRecordPayload;
+  params: DeleteRecordParams;
 }
 
-interface ReadRecordResponse {
-  status: 'success';
+interface ReadRecordPayload {
   type: 'read';
   action: string;
-  payload: ReadRecordPayload;
+  params: ReadRecordParams;
 }
 
-type SuccessResponse = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
+type SuccessfulRequest = {
+  status: 'success';
+  body: CreateRecordPayload | DeleteRecordPayload | ReadRecordPayload;
+};
 
-interface FailedResponse {
+interface FailedRequest {
   status: 'failed';
   msg: string;
 }
 
-export type ValidatedResponse = SuccessResponse | FailedResponse;
+export type Request = SuccessfulRequest | FailedRequest;

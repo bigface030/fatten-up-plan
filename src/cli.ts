@@ -4,7 +4,7 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import db, { checkDbVersion } from './db';
-import { CreateRecordPayload, ReadRecordPayload, TagConfig, ValidatedResponse } from './types';
+import { CreateRecordParams, ReadRecordParams, TagConfig, Request } from './types';
 import { COMMANDS } from './constants';
 
 dayjs.extend(customParseFormat);
@@ -20,7 +20,7 @@ const dictionary: Record<string, string> = JSON.parse(readFileSync('src/dictiona
 
 const tags: Record<string, TagConfig> = JSON.parse(readFileSync('src/tags.json', 'utf-8'));
 
-const validateInput = (args: string[]): ValidatedResponse => {
+const validateInput = (args: string[]): Request => {
   if (!dictionary[args[0]] && !tags[args[0]])
     return {
       status: 'failed',
@@ -30,8 +30,10 @@ const validateInput = (args: string[]): ValidatedResponse => {
   if (dictionary[args[0]] === COMMANDS.DELETE_LATEST)
     return {
       status: 'success',
-      type: 'delete',
-      payload: {},
+      body: {
+        type: 'delete',
+        params: {},
+      },
     };
 
   if (dictionary[args[0]] === COMMANDS.LOOK_UP) {
@@ -51,10 +53,12 @@ const validateInput = (args: string[]): ValidatedResponse => {
     }
     return {
       status: 'success',
-      type: 'read',
-      action: 'read_balance',
-      payload: {
-        interval: params.map((param) => dayjs(param).format('YYYY-MM-DD')),
+      body: {
+        type: 'read',
+        action: 'read_balance',
+        params: {
+          interval: params.map((param) => dayjs(param).format('YYYY-MM-DD')),
+        },
       },
     };
   }
@@ -86,17 +90,19 @@ const validateInput = (args: string[]): ValidatedResponse => {
 
   return {
     status: 'success',
-    type: 'create',
-    payload: {
-      activity,
-      customized_tag,
-      customized_classification,
-      amount,
+    body: {
+      type: 'create',
+      params: {
+        activity,
+        customized_tag,
+        customized_classification,
+        amount,
+      },
     },
   };
 };
 
-const createRecord = async (payload: CreateRecordPayload) => {
+const createRecord = async (params: CreateRecordParams) => {
   const client = await db.connect();
 
   try {
@@ -106,7 +112,7 @@ const createRecord = async (payload: CreateRecordPayload) => {
       `INSERT INTO records (channel_id, activity, created_by)
           VALUES ($1, $2, $3)
           RETURNING id;`,
-      [channel_id, payload.activity, username],
+      [channel_id, params.activity, username],
     );
 
     await client.query(
@@ -115,9 +121,9 @@ const createRecord = async (payload: CreateRecordPayload) => {
       [
         res.rows[0].id,
         username,
-        payload.amount,
-        payload.customized_classification,
-        payload.customized_tag,
+        params.amount,
+        params.customized_classification,
+        params.customized_tag,
       ],
     );
 
@@ -145,8 +151,8 @@ const deleteRecord = () => {
   );
 };
 
-const readRecord = async (payload: ReadRecordPayload) => {
-  const { interval } = payload;
+const readRecord = async (params: ReadRecordParams) => {
+  const { interval } = params;
 
   let res;
   if (interval.length > 1) {
@@ -175,26 +181,26 @@ process.stdin.on('data', async (data: string) => {
   const args = data.replace(/\s+/g, ' ').trim().split(' ');
 
   if (args[0] === '.version') {
-    const result = await checkDbVersion();
-    console.log(`DB version: ${result}`);
+    const version = await checkDbVersion();
+    console.log(`DB version: ${version}`);
     return prompt();
   }
 
-  const result = validateInput(args);
-  if (result.status === 'failed') {
-    console.log(result.msg);
+  const req = validateInput(args);
+  if (req.status === 'failed') {
+    console.log(req.msg);
     return prompt();
   }
 
-  const { type, payload } = result;
+  const { type, params } = req.body;
   if (type === 'create') {
-    await createRecord(payload);
+    await createRecord(params);
     console.log('Successfully create!');
   } else if (type === 'delete') {
     await deleteRecord();
     console.log('Successfully delete!');
   } else if (type === 'read') {
-    const res = await readRecord(payload);
+    const res = await readRecord(params);
     console.log(res);
   }
 
