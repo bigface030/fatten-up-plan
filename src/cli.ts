@@ -4,8 +4,17 @@ import dayjs from 'dayjs';
 import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import db, { checkDbVersion } from './db';
-import { CreateRecordParams, ReadRecordParams, TagConfig, Request } from './types';
+import {
+  CreateRecordParams,
+  ReadRecordParams,
+  TagConfig,
+  Request,
+  Transaction,
+  ReadBalanceResult,
+} from './types';
 import { COMMANDS } from './constants';
+import { Entries } from './utils/type';
+import { add } from './utils/decimal';
 
 dayjs.extend(customParseFormat);
 
@@ -19,6 +28,10 @@ function prompt() {
 const dictionary: Record<string, string> = JSON.parse(readFileSync('src/dictionary.json', 'utf-8'));
 
 const tags: Record<string, TagConfig> = JSON.parse(readFileSync('src/tags.json', 'utf-8'));
+
+const localization: Record<string, string> = JSON.parse(
+  readFileSync('src/localization.json', 'utf-8'),
+);
 
 const validateInput = (args: string[]): Request => {
   if (!dictionary[args[0]] && !tags[args[0]])
@@ -151,7 +164,7 @@ const deleteRecord = () => {
   );
 };
 
-const readRecord = async (params: ReadRecordParams) => {
+const readRecord = async (params: ReadRecordParams): Promise<Transaction[]> => {
   const { interval } = params;
 
   let res;
@@ -171,6 +184,42 @@ const readRecord = async (params: ReadRecordParams) => {
     );
   }
   return res.rows;
+};
+
+const operateReadBalance = (records: Transaction[]): ReadBalanceResult => {
+  let expenditure_sum = 0,
+    income_sum = 0;
+  for (const { activity, amount } of records) {
+    if (activity === 'expenditure') {
+      expenditure_sum = add(expenditure_sum, amount);
+    } else if (activity === 'income') {
+      income_sum = add(income_sum, amount);
+    }
+  }
+
+  return {
+    expenditure: expenditure_sum,
+    income: income_sum,
+    total: income_sum - expenditure_sum,
+  };
+};
+
+const display = (params: ReadRecordParams, result: ReadBalanceResult) => {
+  const _params = {
+    date: params.interval || [],
+  };
+
+  const res: Record<string, string> = {};
+  for (const [prop, value] of Object.entries(result) as Entries<typeof result>) {
+    const propName = localization[prop];
+    res[propName] = value.toString();
+  }
+  for (const [prop, value] of Object.entries(_params) as Entries<typeof _params>) {
+    const propName = localization[prop];
+    res[propName] = value.toString();
+  }
+
+  console.log(res);
 };
 
 prompt();
@@ -200,8 +249,9 @@ process.stdin.on('data', async (data: string) => {
     await deleteRecord();
     console.log('Successfully delete!');
   } else if (type === 'read') {
-    const res = await readRecord(params);
-    console.log(res);
+    const records = await readRecord(params);
+    const result = operateReadBalance(records);
+    display(params, result);
   }
 
   return prompt();
