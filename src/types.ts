@@ -8,6 +8,7 @@ export interface TagConfig {
 export interface CreateRecordParams {
   activity: string;
   amount: number;
+  description?: string;
   customized_tag?: string;
   customized_classification?: string | null;
 }

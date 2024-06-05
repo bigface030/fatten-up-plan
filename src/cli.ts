@@ -40,7 +40,13 @@ const validateInput = (args: string[]): Request => {
       msg: 'Invalid command',
     };
 
-  if (dictionary[args[0]] === COMMANDS.DELETE_LATEST)
+  if (dictionary[args[0]] === COMMANDS.DELETE_LATEST) {
+    if (args.length > 1) {
+      return {
+        status: 'failed',
+        msg: 'Invalid params length',
+      };
+    }
     return {
       status: 'success',
       body: {
@@ -48,6 +54,7 @@ const validateInput = (args: string[]): Request => {
         params: {},
       },
     };
+  }
 
   if (dictionary[args[0]] === COMMANDS.LOOK_UP) {
     const params = args.slice(1);
@@ -86,8 +93,15 @@ const validateInput = (args: string[]): Request => {
   const activity = dictionary[tags[args[0]].transaction_type],
     customized_tag = args[0],
     customized_classification = tags[args[0]].classification,
-    amount = Math.abs(Number(args[1]));
-  // TODO: handle args length over 2
+    amount = Math.abs(Number(args[1])),
+    description = args[2];
+
+  if (args.length > 3) {
+    return {
+      status: 'failed',
+      msg: 'Invalid params length',
+    };
+  }
 
   if (isNaN(amount))
     return {
@@ -110,6 +124,7 @@ const validateInput = (args: string[]): Request => {
         customized_tag,
         customized_classification,
         amount,
+        description,
       },
     },
   };
@@ -122,10 +137,10 @@ const createRecord = async (params: CreateRecordParams) => {
     await client.query('BEGIN');
 
     const res = await client.query(
-      `INSERT INTO records (channel_id, activity, created_by)
-          VALUES ($1, $2, $3)
+      `INSERT INTO records (channel_id, activity, description, created_by)
+          VALUES ($1, $2, $3, $4)
           RETURNING id;`,
-      [channel_id, params.activity, username],
+      [channel_id, params.activity, params.description, username],
     );
 
     await client.query(
