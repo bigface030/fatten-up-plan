@@ -1,4 +1,5 @@
 import { UUID } from 'crypto';
+import { DEFAULT_DATE_INTERVALS } from './constants';
 
 export interface TagConfig {
   transaction_type: string;
@@ -71,3 +72,5 @@ export interface ReadBalanceResult {
   income: number;
   total: number;
 }
+
+export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];

@@ -1,7 +1,5 @@
 import 'dotenv/config';
 import { readFileSync } from 'fs';
-import dayjs from 'dayjs';
-import customParseFormat from 'dayjs/plugin/customParseFormat';
 
 import db, { checkDbVersion } from './db';
 import {
@@ -11,12 +9,12 @@ import {
   Request,
   Transaction,
   ReadBalanceResult,
+  DefaultDateInterval,
 } from './types';
-import { COMMANDS } from './constants';
+import { COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { Entries } from './utils/type';
 import { add } from './utils/decimal';
-
-dayjs.extend(customParseFormat);
+import { datesFor, isValidDateString } from './dateUtils';
 
 const channel_id = process.env.DB_TEST_CHANNEL_ID as string;
 const username = process.env.DB_ADMIN_USERNAME as string;
@@ -58,14 +56,31 @@ const validateInput = (args: string[]): Request => {
 
   if (dictionary[args[0]] === COMMANDS.LOOK_UP) {
     const params = args.slice(1);
+    if (DEFAULT_DATE_INTERVALS.includes(dictionary[params[0]] as DefaultDateInterval)) {
+      if (params.length > 1) {
+        return {
+          status: 'failed',
+          msg: 'Invalid params length',
+        };
+      }
+      return {
+        status: 'success',
+        body: {
+          type: 'read',
+          action: 'read_balance',
+          params: {
+            interval: datesFor(dictionary[params[0]] as DefaultDateInterval),
+          },
+        },
+      };
+    }
     if (params.length < 1 || params.length > 2) {
       return {
         status: 'failed',
         msg: 'Invalid params length',
       };
     }
-    const isValid = params.every((param) => dayjs(param, 'YYYYMMDD', true).isValid());
-    if (!isValid) {
+    if (!params.every(isValidDateString)) {
       return {
         status: 'failed',
         msg: 'Invalid params value',
@@ -77,13 +92,12 @@ const validateInput = (args: string[]): Request => {
         type: 'read',
         action: 'read_balance',
         params: {
-          interval: params.map((param) => dayjs(param).format('YYYY-MM-DD')),
+          interval: datesFor(params),
         },
       },
     };
   }
 
-  // TODO: remove after all commands completed
   if (!tags[args[0]])
     return {
       status: 'failed',
