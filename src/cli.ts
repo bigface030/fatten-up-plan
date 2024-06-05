@@ -187,14 +187,16 @@ const readRecord = async (params: ReadRecordParams): Promise<Transaction[]> => {
     res = await db.query(
       `SELECT * FROM records
       JOIN transactions ON records.id = transactions.record_id
-      WHERE accounting_date BETWEEN $1 AND $2`,
+      WHERE accounting_date BETWEEN $1 AND $2
+      AND deleted_at IS NULL`,
       [interval[0], interval[1]],
     );
   } else {
     res = await db.query(
       `SELECT * FROM records
       JOIN transactions ON records.id = transactions.record_id
-      WHERE accounting_date = $1`,
+      WHERE accounting_date = $1
+      AND deleted_at IS NULL`,
       [interval[0]],
     );
   }
