@@ -5,6 +5,7 @@ const { Pool, types } = pg;
 const db = new Pool();
 
 types.setTypeParser(types.builtins.NUMERIC, Number);
+types.setTypeParser(types.builtins.DATE, (date) => date);
 
 export const checkDbVersion: () => Promise<string> = async () => {
   const res = await db.query('SELECT version();');

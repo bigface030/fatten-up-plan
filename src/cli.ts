@@ -7,11 +7,12 @@ import {
   ReadRecordParams,
   TagConfig,
   Request,
-  Transaction,
+  DbTransaction,
   ReadBalanceResult,
   DefaultDateInterval,
+  ReadStatementResult,
 } from './types';
-import { COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
+import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { Entries } from './utils/type';
 import { add } from './utils/decimal';
 import { datesFor, isValidDateString } from './dateUtils';
@@ -54,7 +55,8 @@ const validateInput = (args: string[]): Request => {
     };
   }
 
-  if (dictionary[args[0]] === COMMANDS.LOOK_UP) {
+  if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[args[0]])) {
+    const command = dictionary[args[0]];
     const params = args.slice(1);
     if (DEFAULT_DATE_INTERVALS.includes(dictionary[params[0]] as DefaultDateInterval)) {
       if (params.length > 1) {
@@ -67,7 +69,7 @@ const validateInput = (args: string[]): Request => {
         status: 'success',
         body: {
           type: 'read',
-          action: 'read_balance',
+          action: ACTIONS[command],
           params: {
             interval: datesFor(dictionary[params[0]] as DefaultDateInterval),
           },
@@ -90,7 +92,7 @@ const validateInput = (args: string[]): Request => {
       status: 'success',
       body: {
         type: 'read',
-        action: 'read_balance',
+        action: ACTIONS[command],
         params: {
           interval: datesFor(params),
         },
@@ -193,7 +195,7 @@ const deleteRecord = () => {
   );
 };
 
-const readRecord = async (params: ReadRecordParams): Promise<Transaction[]> => {
+const readRecord = async (params: ReadRecordParams): Promise<DbTransaction[]> => {
   const { interval } = params;
 
   let res;
@@ -217,7 +219,7 @@ const readRecord = async (params: ReadRecordParams): Promise<Transaction[]> => {
   return res.rows;
 };
 
-const operateReadBalance = (records: Transaction[]): ReadBalanceResult => {
+const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
   let expenditure_sum = 0,
     income_sum = 0;
   for (const { activity, amount } of records) {
@@ -235,7 +237,22 @@ const operateReadBalance = (records: Transaction[]): ReadBalanceResult => {
   };
 };
 
-const display = (params: ReadRecordParams, result: ReadBalanceResult) => {
+const operateReadStatement = (records: DbTransaction[]): ReadStatementResult => {
+  const result: ReadStatementResult = {};
+
+  records.forEach((record) => {
+    const { accounting_date, activity, customized_tag, amount } = record;
+    if (!result[accounting_date]) {
+      result[accounting_date] = [{ activity, customized_tag, amount }];
+    } else {
+      result[accounting_date].push({ activity, customized_tag, amount });
+    }
+  });
+
+  return result;
+};
+
+function displayBalance(params: ReadRecordParams, result: ReadBalanceResult) {
   const _params = {
     date: params.interval || [],
   };
@@ -251,7 +268,16 @@ const display = (params: ReadRecordParams, result: ReadBalanceResult) => {
   }
 
   console.log(res);
-};
+}
+
+function displayStatement(result: ReadStatementResult) {
+  for (const [date, recordArr] of Object.entries(result)) {
+    console.log(date);
+    for (const { activity, amount, customized_tag } of recordArr) {
+      console.log(`${localization[activity]} ${customized_tag} ${amount}`);
+    }
+  }
+}
 
 prompt();
 
@@ -280,9 +306,15 @@ process.stdin.on('data', async (data: string) => {
     await deleteRecord();
     console.log('Successfully delete!');
   } else if (type === 'read') {
+    const { action } = req.body;
     const records = await readRecord(params);
-    const result = operateReadBalance(records);
-    display(params, result);
+    if (action === 'read_balance') {
+      const result = operateReadBalance(records);
+      displayBalance(params, result);
+    } else if (action === 'read_statement') {
+      const result = operateReadStatement(records);
+      displayStatement(result);
+    }
   }
 
   return prompt();

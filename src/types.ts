@@ -29,9 +29,11 @@ interface DeleteRecordPayload {
   params: DeleteRecordParams;
 }
 
+export type Action = 'read_balance' | 'read_statement';
+
 interface ReadRecordPayload {
   type: 'read';
-  action: string;
+  action: Action;
   params: ReadRecordParams;
 }
 
@@ -47,7 +49,7 @@ interface FailedRequest {
 
 export type Request = SuccessfulRequest | FailedRequest;
 
-interface Record {
+interface DbRecord {
   id: UUID;
   channel_id: UUID;
   accounting_date: string; // 2024-05-31
@@ -59,7 +61,7 @@ interface Record {
   deleted_by: string | null;
 }
 
-export interface Transaction extends Record {
+export interface DbTransaction extends DbRecord {
   // record_id: UUID;
   username: string;
   amount: number;
@@ -72,5 +74,10 @@ export interface ReadBalanceResult {
   income: number;
   total: number;
 }
+
+export type ReadStatementResult = Record<
+  string,
+  Pick<DbTransaction, 'activity' | 'customized_tag' | 'amount'>[]
+>;
 
 export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];
