@@ -13,7 +13,6 @@ import {
   ReadStatementResult,
 } from './types';
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
-import { Entries } from './utils/type';
 import { add } from './utils/decimal';
 import { datesFor, isValidDateString } from './dateUtils';
 
@@ -152,24 +151,25 @@ const validateInput = (args: string[]): Request => {
   };
 };
 
-const createRecord = async (params: CreateRecordParams) => {
+const createRecord = async (params: CreateRecordParams): Promise<DbTransaction> => {
   const client = await db.connect();
 
   try {
     await client.query('BEGIN');
 
-    const res = await client.query(
+    const record = await client.query(
       `INSERT INTO records (channel_id, activity, description, created_by)
-          VALUES ($1, $2, $3, $4)
-          RETURNING id;`,
+      VALUES ($1, $2, $3, $4)
+      RETURNING *;`,
       [channel_id, params.activity, params.description, username],
     );
 
-    await client.query(
+    const transaction = await client.query(
       `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
-          VALUES ($1, $2, $3, $4, $5);`,
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *;`,
       [
-        res.rows[0].id,
+        record.rows[0].id,
         username,
         params.amount,
         params.customized_classification,
@@ -178,6 +178,8 @@ const createRecord = async (params: CreateRecordParams) => {
     );
 
     await client.query('COMMIT');
+
+    return { ...record.rows[0], ...transaction.rows[0] };
   } catch (e) {
     await client.query('ROLLBACK');
     throw e;
@@ -186,19 +188,22 @@ const createRecord = async (params: CreateRecordParams) => {
   }
 };
 
-const deleteRecord = () => {
-  return db.query(
+const deleteRecord = async (): Promise<DbTransaction> => {
+  const res = await db.query(
     `UPDATE records
     SET deleted_at = CURRENT_TIMESTAMP
+    FROM transactions
     WHERE id = (
       SELECT id
       FROM records
       WHERE channel_id = $1 AND deleted_at IS NULL
       ORDER BY created_at DESC
       LIMIT 1
-    );`,
+    )
+    RETURNING *;`,
     [channel_id],
   );
+  return res.rows[0];
 };
 
 const readRecord = async (params: ReadRecordParams): Promise<DbTransaction[]> => {
@@ -247,40 +252,61 @@ const operateReadStatement = (records: DbTransaction[]): ReadStatementResult => 
   const result: ReadStatementResult = {};
 
   records.forEach((record) => {
-    const { accounting_date, activity, customized_tag, amount } = record;
+    const { accounting_date } = record;
     if (!result[accounting_date]) {
-      result[accounting_date] = [{ activity, customized_tag, amount }];
+      result[accounting_date] = [record];
     } else {
-      result[accounting_date].push({ activity, customized_tag, amount });
+      result[accounting_date].push(record);
     }
   });
 
   return result;
 };
 
+function displayRecords(records: DbTransaction[]) {
+  records.forEach(
+    ({
+      activity,
+      customized_tag,
+      amount,
+      accounting_date,
+      customized_classification,
+      description,
+    }) => {
+      console.log(`${localization[activity]} ${customized_tag} $${amount}`);
+      const title = [
+        `${localization['date']}: ${accounting_date}`,
+        `${localization['category']}: ${customized_classification || localization['null']}`,
+        `${localization['description']}: ${description || localization['null']}`,
+      ];
+      console.log(title.join(', '));
+    },
+  );
+}
+
 function displayBalance(params: ReadRecordParams, result: ReadBalanceResult) {
-  const _params = {
-    date: params.interval || [],
-  };
+  const { interval } = params;
 
-  const res: Record<string, string> = {};
-  for (const [prop, value] of Object.entries(result) as Entries<typeof result>) {
-    const propName = localization[prop];
-    res[propName] = value.toString();
-  }
-  for (const [prop, value] of Object.entries(_params) as Entries<typeof _params>) {
-    const propName = localization[prop];
-    res[propName] = value.toString();
-  }
-
-  console.log(res);
+  const { expenditure, income, total } = result;
+  const title = [
+    `${localization['expenditure']}: $${expenditure}`,
+    `${localization['income']}: $${income}`,
+    `${localization['total']}: $${total}`,
+  ];
+  console.log(title.join(', '));
+  const subtitle = [
+    `${localization['date']}: ${interval.toString()}`,
+    `${localization['category']}: ${localization['all']}`,
+    `${localization['description']}: ${localization['all']}`,
+  ];
+  console.log(subtitle.join(', '));
 }
 
 function displayStatement(result: ReadStatementResult) {
-  for (const [date, recordArr] of Object.entries(result)) {
-    console.log(date);
+  for (const [accounting_date, recordArr] of Object.entries(result)) {
+    console.log(accounting_date);
     for (const { activity, amount, customized_tag } of recordArr) {
-      console.log(`${localization[activity]} ${customized_tag} ${amount}`);
+      console.log(`${localization[activity]} ${customized_tag} $${amount}`);
     }
   }
 }
@@ -306,11 +332,13 @@ process.stdin.on('data', async (data: string) => {
 
   const { type, params } = req.body;
   if (type === 'create') {
-    await createRecord(params);
-    console.log('Successfully create!');
+    const record = await createRecord(params);
+    console.log('新增成功');
+    displayRecords([record]);
   } else if (type === 'delete') {
-    await deleteRecord();
-    console.log('Successfully delete!');
+    const record = await deleteRecord();
+    console.log('刪除成功');
+    displayRecords([record]);
   } else if (type === 'read') {
     const { action } = req.body;
     const records = await readRecord(params);

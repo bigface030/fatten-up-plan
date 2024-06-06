@@ -75,9 +75,6 @@ export interface ReadBalanceResult {
   total: number;
 }
 
-export type ReadStatementResult = Record<
-  string,
-  Pick<DbTransaction, 'activity' | 'customized_tag' | 'amount'>[]
->;
+export type ReadStatementResult = Record<string, DbTransaction[]>;
 
 export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];

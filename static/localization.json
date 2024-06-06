@@ -2,5 +2,9 @@
   "expenditure": "支出",
   "income": "收入",
   "total": "淨額",
-  "date": "日期"
+  "date": "日期",
+  "category": "類別",
+  "description": "備註",
+  "null": "無",
+  "all": "全部"
 }
