@@ -24,12 +24,18 @@ function prompt() {
   process.stdout.write('> ');
 }
 
-const dictionary: Record<string, string> = JSON.parse(readFileSync('src/dictionary.json', 'utf-8'));
+const dictionary: Record<string, string> = JSON.parse(
+  readFileSync('static/dictionary.json', 'utf-8'),
+);
 
-const tags: Record<string, TagConfig> = JSON.parse(readFileSync('src/tags.json', 'utf-8'));
+const tags: Record<string, TagConfig> = JSON.parse(readFileSync('static/tags.json', 'utf-8'));
+
+const intervals: Record<string, DefaultDateInterval> = JSON.parse(
+  readFileSync('static/intervals.json', 'utf-8'),
+);
 
 const localization: Record<string, string> = JSON.parse(
-  readFileSync('src/localization.json', 'utf-8'),
+  readFileSync('static/localization.json', 'utf-8'),
 );
 
 const validateInput = (args: string[]): Request => {
@@ -58,7 +64,7 @@ const validateInput = (args: string[]): Request => {
   if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[args[0]])) {
     const command = dictionary[args[0]];
     const params = args.slice(1);
-    if (DEFAULT_DATE_INTERVALS.includes(dictionary[params[0]] as DefaultDateInterval)) {
+    if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
       if (params.length > 1) {
         return {
           status: 'failed',
@@ -71,7 +77,7 @@ const validateInput = (args: string[]): Request => {
           type: 'read',
           action: ACTIONS[command],
           params: {
-            interval: datesFor(dictionary[params[0]] as DefaultDateInterval),
+            interval: datesFor(intervals[params[0]]),
           },
         },
       };
