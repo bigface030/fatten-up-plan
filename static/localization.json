@@ -6,5 +6,6 @@
   "category": "類別",
   "description": "備註",
   "null": "無",
-  "all": "全部"
+  "all": "全部",
+  "no_records": "無符合查詢條件的紀錄"
 }

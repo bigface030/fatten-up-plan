@@ -399,7 +399,9 @@ process.stdin.on('data', async (data: string) => {
   } else if (type === 'read') {
     const { action } = req.body;
     const records = await readRecord(params);
-    if (action === 'read_balance') {
+    if (records.length === 0) {
+      console.log(localization['no_records']);
+    } else if (action === 'read_balance') {
       const result = operateReadBalance(records);
       displayBalance(params, result);
     } else if (action === 'read_statement') {
