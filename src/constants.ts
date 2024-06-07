@@ -23,3 +23,9 @@ export const DEFAULT_DATE_INTERVALS = [
   'this_year',
   'last_year',
 ] as const;
+
+export const SYSTEM_COMMANDS = {
+  HELP: 'help',
+  TAG: 'tags',
+  INTERVAL: 'default_date_intervals',
+};

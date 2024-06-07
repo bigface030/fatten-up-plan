@@ -12,7 +12,7 @@ import {
   DefaultDateInterval,
   ReadStatementResult,
 } from './types';
-import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
+import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS, SYSTEM_COMMANDS } from './constants';
 import { add } from './utils/decimal';
 import { datesFor, isValidDateString } from './dateUtils';
 
@@ -36,6 +36,8 @@ const intervals: Record<string, DefaultDateInterval> = JSON.parse(
 const localization: Record<string, string> = JSON.parse(
   readFileSync('static/localization.json', 'utf-8'),
 );
+
+const help = readFileSync('static/help.txt', 'utf-8');
 
 const validateInput = (args: string[]): Request => {
   if (!dictionary[args[0]] && !tags[args[0]])
@@ -311,6 +313,38 @@ function displayStatement(result: ReadStatementResult) {
   }
 }
 
+const classifyTags = (tags: Record<string, TagConfig>) => {
+  const result: Record<string, Record<string, string[]>> = {};
+  for (const [tag, { transaction_type, classification }] of Object.entries(tags)) {
+    if (!result[transaction_type]) {
+      result[transaction_type] = {};
+    }
+    if (!classification) {
+      result[transaction_type]['none'] = result[transaction_type]?.['none']
+        ? [...result[transaction_type]['none'], tag]
+        : [tag];
+    } else {
+      result[transaction_type][classification] = result[transaction_type]?.[classification]
+        ? [...result[transaction_type][classification], tag]
+        : [tag];
+    }
+  }
+  return result;
+};
+
+function printTags(result: Record<string, Record<string, string[]>>) {
+  Object.entries(result).forEach(([transaction_type, { none, ...rest }], index) => {
+    console.log(`${index + 1}. ${transaction_type}: `);
+    if (none) {
+      console.log(none.join(', '));
+    }
+    Object.entries(rest).forEach(([classification, tags], index) => {
+      console.log(`(${index + 1}) ${classification}: `);
+      console.log(tags.join(', '));
+    });
+  });
+}
+
 prompt();
 
 process.stdin.setEncoding('utf-8');
@@ -321,6 +355,29 @@ process.stdin.on('data', async (data: string) => {
   if (args[0] === '.version') {
     const version = await checkDbVersion();
     console.log(`DB version: ${version}`);
+    return prompt();
+  }
+
+  if (Object.values(SYSTEM_COMMANDS).includes(dictionary[args[0]])) {
+    switch (dictionary[args[0]]) {
+      case SYSTEM_COMMANDS.HELP: {
+        console.log(help);
+        break;
+      }
+      case SYSTEM_COMMANDS.TAG: {
+        const result = classifyTags(tags);
+        printTags(result);
+        break;
+      }
+      case SYSTEM_COMMANDS.INTERVAL: {
+        const result = Object.keys(intervals).join(', ');
+        console.log(result);
+        break;
+      }
+      default:
+        break;
+    }
+
     return prompt();
   }
 

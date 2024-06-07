@@ -3,5 +3,8 @@
   "明細": "check_detail",
   "刪除上一筆": "delete_latest",
   "支出": "expenditure",
-  "收入": "income"
+  "收入": "income",
+  "幫助": "help",
+  "標籤": "tags",
+  "快速日期": "default_date_intervals"
 }
