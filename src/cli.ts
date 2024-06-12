@@ -1,10 +1,12 @@
 import 'dotenv/config';
 import { readFileSync } from 'fs';
 
-import db, { checkDbVersion } from './db';
+import * as db from './db';
+import { AppQuery } from './db/type';
 import {
-  CreateRecordParams,
-  ReadRecordParams,
+  DbCreateRecordParams,
+  DbReadRecordParams,
+  DbDeleteRecordParams,
   TagConfig,
   Request,
   DbTransaction,
@@ -16,7 +18,6 @@ import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS, SYSTEM_COMMANDS } from './co
 import { add } from './utils/decimal';
 import { datesFor, isValidDateString } from './dateUtils';
 
-const channel_id = process.env.DB_TEST_CHANNEL_ID as string;
 const username = process.env.DB_ADMIN_USERNAME as string;
 
 function prompt() {
@@ -153,46 +154,51 @@ const validateInput = (args: string[]): Request => {
   };
 };
 
-const createRecord = async (params: CreateRecordParams): Promise<DbTransaction> => {
-  const client = await db.connect();
+const getChannelId =
+  (name: string) =>
+  async (query: AppQuery): Promise<string> => {
+    const channel = await query(`SELECT id FROM channels WHERE name = $1 AND deleted_at IS NULL;`, [
+      name,
+    ]);
 
-  try {
-    await client.query('BEGIN');
+    return channel.rows[0].id;
+  };
 
-    const record = await client.query(
+const createRecord =
+  (params: DbCreateRecordParams) =>
+  async (query: AppQuery): Promise<DbTransaction> => {
+    const channel_id = await getChannelId(params.username)(query);
+
+    const record = await query(
       `INSERT INTO records (channel_id, activity, description, created_by)
-      VALUES ($1, $2, $3, $4)
-      RETURNING *;`,
-      [channel_id, params.activity, params.description, username],
+    VALUES ($1, $2, $3, $4)
+    RETURNING *;`,
+      [channel_id, params.activity, params.description, params.username],
     );
 
-    const transaction = await client.query(
+    const transaction = await query(
       `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *;`,
+    VALUES ($1, $2, $3, $4, $5)
+    RETURNING *;`,
       [
         record.rows[0].id,
-        username,
+        params.username,
         params.amount,
         params.customized_classification,
         params.customized_tag,
       ],
     );
 
-    await client.query('COMMIT');
-
     return { ...record.rows[0], ...transaction.rows[0] };
-  } catch (e) {
-    await client.query('ROLLBACK');
-    throw e;
-  } finally {
-    client.release();
-  }
-};
+  };
 
-const deleteRecord = async (): Promise<DbTransaction> => {
-  const res = await db.query(
-    `UPDATE records
+const deleteRecord =
+  (params: DbDeleteRecordParams) =>
+  async (query: AppQuery): Promise<DbTransaction> => {
+    const channel_id = await getChannelId(params.username)(query);
+
+    const res = await query(
+      `UPDATE records
     SET deleted_at = CURRENT_TIMESTAMP
     FROM transactions
     WHERE id = (
@@ -203,34 +209,42 @@ const deleteRecord = async (): Promise<DbTransaction> => {
       LIMIT 1
     )
     RETURNING *;`,
-    [channel_id],
-  );
-  return res.rows[0];
-};
-
-const readRecord = async (params: ReadRecordParams): Promise<DbTransaction[]> => {
-  const { interval } = params;
-
-  let res;
-  if (interval.length > 1) {
-    res = await db.query(
-      `SELECT * FROM records
-      JOIN transactions ON records.id = transactions.record_id
-      WHERE accounting_date BETWEEN $1 AND $2
-      AND deleted_at IS NULL`,
-      [interval[0], interval[1]],
+      [channel_id],
     );
-  } else {
-    res = await db.query(
-      `SELECT * FROM records
+
+    return res.rows[0];
+  };
+
+const readRecord =
+  (params: DbReadRecordParams) =>
+  async (query: AppQuery): Promise<DbTransaction[]> => {
+    const { interval } = params;
+
+    const channel_id = await getChannelId(params.username)(query);
+
+    let res;
+    if (interval.length > 1) {
+      res = await query(
+        `SELECT * FROM records
       JOIN transactions ON records.id = transactions.record_id
-      WHERE accounting_date = $1
+      WHERE channel_id = $1
+      AND accounting_date BETWEEN $2 AND $3
+      AND deleted_at IS NULL;`,
+        [channel_id, interval[0], interval[1]],
+      );
+    } else {
+      res = await query(
+        `SELECT * FROM records
+      JOIN transactions ON records.id = transactions.record_id
+      WHERE channel_id = $1
+      AND accounting_date = $2
       AND deleted_at IS NULL`,
-      [interval[0]],
-    );
-  }
-  return res.rows;
-};
+        [channel_id, interval[0]],
+      );
+    }
+
+    return res.rows;
+  };
 
 const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
   let expenditure_sum = 0,
@@ -286,7 +300,7 @@ function displayRecords(records: DbTransaction[]) {
   );
 }
 
-function displayBalance(params: ReadRecordParams, result: ReadBalanceResult) {
+function displayBalance(params: DbReadRecordParams, result: ReadBalanceResult) {
   const { interval } = params;
 
   const { expenditure, income, total } = result;
@@ -353,7 +367,7 @@ process.stdin.on('data', async (data: string) => {
   const args = data.replace(/\s+/g, ' ').trim().split(' ');
 
   if (args[0] === '.version') {
-    const version = await checkDbVersion();
+    const version = await db.checkDbVersion();
     console.log(`DB version: ${version}`);
     return prompt();
   }
@@ -389,21 +403,21 @@ process.stdin.on('data', async (data: string) => {
 
   const { type, params } = req.body;
   if (type === 'create') {
-    const record = await createRecord(params);
+    const record = await db.transact(createRecord({ ...params, username }));
     console.log('新增成功');
     displayRecords([record]);
   } else if (type === 'delete') {
-    const record = await deleteRecord();
+    const record = await db.transact(deleteRecord({ ...params, username }));
     console.log('刪除成功');
     displayRecords([record]);
   } else if (type === 'read') {
     const { action } = req.body;
-    const records = await readRecord(params);
+    const records = await db.transact(readRecord({ ...params, username }));
     if (records.length === 0) {
       console.log(localization['no_records']);
     } else if (action === 'read_balance') {
       const result = operateReadBalance(records);
-      displayBalance(params, result);
+      displayBalance({ ...params, username }, result);
     } else if (action === 'read_statement') {
       const result = operateReadStatement(records);
       displayStatement(result);

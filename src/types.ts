@@ -6,7 +6,7 @@ export interface TagConfig {
   classification: string | null;
 }
 
-export interface CreateRecordParams {
+interface CreateRecordParams {
   activity: string;
   amount: number;
   description?: string;
@@ -14,9 +14,9 @@ export interface CreateRecordParams {
   customized_classification?: string | null;
 }
 
-export interface DeleteRecordParams {}
+interface DeleteRecordParams {}
 
-export interface ReadRecordParams {
+interface ReadRecordParams {
   interval: string[];
 }
 interface CreateRecordPayload {
@@ -68,6 +68,14 @@ export interface DbTransaction extends DbRecord {
   customized_classification: string | null;
   customized_tag: string | null;
 }
+
+export interface DbCommonParams {
+  username: string;
+}
+
+export type DbCreateRecordParams = CreateRecordParams & DbCommonParams;
+export type DbDeleteRecordParams = DeleteRecordParams & DbCommonParams;
+export type DbReadRecordParams = ReadRecordParams & DbCommonParams;
 
 export interface ReadBalanceResult {
   expenditure: number;
