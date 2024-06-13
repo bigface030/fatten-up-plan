@@ -1,188 +1,18 @@
 import 'dotenv/config';
-import { readFileSync } from 'fs';
 
 import * as db from './db';
-import {
-  TagConfig,
-  Request,
-  ReadBalanceResult,
-  DefaultDateInterval,
-  ReadStatementResult,
-} from './types';
-import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS, SYSTEM_COMMANDS } from './constants';
-import { add } from './utils/decimal';
-import { datesFor, isValidDateString } from './dateUtils';
-import { createRecord, deleteRecord, readRecord } from './repositories';
+import { TagConfig } from './types';
+import { SYSTEM_COMMANDS } from './constants';
 import { DbReadRecordParams, DbTransaction } from './repositories/types';
+import messageService from './services';
+import { dictionary, help, intervals, localization, tags } from './utils/fileUtils';
+import { ReadBalanceResult, ReadStatementResult } from './services/types';
 
 const username = process.env.DB_ADMIN_USERNAME as string;
 
 function prompt() {
   process.stdout.write('> ');
 }
-
-const dictionary: Record<string, string> = JSON.parse(
-  readFileSync('static/dictionary.json', 'utf-8'),
-);
-
-const tags: Record<string, TagConfig> = JSON.parse(readFileSync('static/tags.json', 'utf-8'));
-
-const intervals: Record<string, DefaultDateInterval> = JSON.parse(
-  readFileSync('static/intervals.json', 'utf-8'),
-);
-
-const localization: Record<string, string> = JSON.parse(
-  readFileSync('static/localization.json', 'utf-8'),
-);
-
-const help = readFileSync('static/help.txt', 'utf-8');
-
-const validateInput = (args: string[]): Request => {
-  if (!dictionary[args[0]] && !tags[args[0]])
-    return {
-      status: 'failed',
-      msg: 'Invalid command',
-    };
-
-  if (dictionary[args[0]] === COMMANDS.DELETE_LATEST) {
-    if (args.length > 1) {
-      return {
-        status: 'failed',
-        msg: 'Invalid params length',
-      };
-    }
-    return {
-      status: 'success',
-      body: {
-        type: 'delete',
-        params: {},
-      },
-    };
-  }
-
-  if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[args[0]])) {
-    const command = dictionary[args[0]];
-    const params = args.slice(1);
-    if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
-      if (params.length > 1) {
-        return {
-          status: 'failed',
-          msg: 'Invalid params length',
-        };
-      }
-      return {
-        status: 'success',
-        body: {
-          type: 'read',
-          action: ACTIONS[command],
-          params: {
-            interval: datesFor(intervals[params[0]]),
-          },
-        },
-      };
-    }
-    if (params.length < 1 || params.length > 2) {
-      return {
-        status: 'failed',
-        msg: 'Invalid params length',
-      };
-    }
-    if (!params.every(isValidDateString)) {
-      return {
-        status: 'failed',
-        msg: 'Invalid params value',
-      };
-    }
-    return {
-      status: 'success',
-      body: {
-        type: 'read',
-        action: ACTIONS[command],
-        params: {
-          interval: datesFor(params),
-        },
-      },
-    };
-  }
-
-  if (!tags[args[0]])
-    return {
-      status: 'failed',
-      msg: 'Invalid tag',
-    };
-
-  const activity = dictionary[tags[args[0]].transaction_type],
-    customized_tag = args[0],
-    customized_classification = tags[args[0]].classification,
-    amount = Math.abs(Number(args[1])),
-    description = args[2];
-
-  if (args.length > 3) {
-    return {
-      status: 'failed',
-      msg: 'Invalid params length',
-    };
-  }
-
-  if (isNaN(amount))
-    return {
-      status: 'failed',
-      msg: 'Invalid amount',
-    };
-
-  if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(activity))
-    return {
-      status: 'failed',
-      msg: 'Admin configs setting error',
-    };
-
-  return {
-    status: 'success',
-    body: {
-      type: 'create',
-      params: {
-        activity,
-        customized_tag,
-        customized_classification,
-        amount,
-        description,
-      },
-    },
-  };
-};
-
-const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
-  let expenditure_sum = 0,
-    income_sum = 0;
-  for (const { activity, amount } of records) {
-    if (activity === 'expenditure') {
-      expenditure_sum = add(expenditure_sum, amount);
-    } else if (activity === 'income') {
-      income_sum = add(income_sum, amount);
-    }
-  }
-
-  return {
-    expenditure: expenditure_sum,
-    income: income_sum,
-    total: income_sum - expenditure_sum,
-  };
-};
-
-const operateReadStatement = (records: DbTransaction[]): ReadStatementResult => {
-  const result: ReadStatementResult = {};
-
-  records.forEach((record) => {
-    const { accounting_date } = record;
-    if (!result[accounting_date]) {
-      result[accounting_date] = [record];
-    } else {
-      result[accounting_date].push(record);
-    }
-  });
-
-  return result;
-};
 
 function displayRecords(records: DbTransaction[]) {
   records.forEach(
@@ -300,31 +130,26 @@ process.stdin.on('data', async (data: string) => {
     return prompt();
   }
 
-  const req = validateInput(args);
-  if (req.status === 'failed') {
-    console.log(req.msg);
+  const res = await messageService({ input: args, username });
+
+  if (res.status === 'failed') {
+    const output = localization[res.msg] || res.msg;
+    console.log(output);
     return prompt();
   }
 
-  const { type, params } = req.body;
+  const { type } = res.body;
   if (type === 'create') {
-    const record = await createRecord({ ...params, username });
     console.log('新增成功');
-    displayRecords([record]);
+    displayRecords([res.body.result]);
   } else if (type === 'delete') {
-    const record = await deleteRecord({ ...params, username });
     console.log('刪除成功');
-    displayRecords([record]);
+    displayRecords([res.body.result]);
   } else if (type === 'read') {
-    const { action } = req.body;
-    const records = await readRecord({ ...params, username });
-    if (records.length === 0) {
-      console.log(localization['no_records']);
-    } else if (action === 'read_balance') {
-      const result = operateReadBalance(records);
+    const { params, action, result } = res.body;
+    if (action === 'read_balance') {
       displayBalance({ ...params, username }, result);
     } else if (action === 'read_statement') {
-      const result = operateReadStatement(records);
       displayStatement(result);
     }
   }
