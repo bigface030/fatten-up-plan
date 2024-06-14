@@ -5,6 +5,7 @@ import { readFileSync } from 'fs';
 import * as line from '@line/bot-sdk';
 
 import { checkDbVersion } from './db';
+import messageEventController from './controllers';
 
 const app = express();
 const port = process.env.PORT || 443;
@@ -59,7 +60,8 @@ const handleEvent = async (event: line.WebhookEvent) => {
     return null;
   }
 
-  const echo = { type: 'text' as const, text: event.message.text };
+  const text = await messageEventController(event);
+  const echo = { type: 'text' as const, text };
 
   return client.replyMessage({
     replyToken: event.replyToken,

@@ -1,6 +1,6 @@
 import { readFileSync } from 'fs';
-import { TagConfig } from '../types';
 import { DefaultDateInterval } from '../services/types';
+import { TagConfig } from '../controllers/types';
 
 export const dictionary: Record<string, string> = JSON.parse(
   readFileSync('static/dictionary.json', 'utf-8'),

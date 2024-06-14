@@ -7,5 +7,7 @@
   "description": "備註",
   "null": "無",
   "all": "全部",
-  "no_records": "無符合查詢條件的紀錄"
+  "no_records": "無符合查詢條件的紀錄",
+  "create_success": "新增成功",
+  "delete_success": "刪除成功"
 }
