@@ -35,6 +35,7 @@ export interface ReadRecordParams {
 }
 
 interface DbCommonParams {
+  channel_id: UUID;
   username: string;
 }
 

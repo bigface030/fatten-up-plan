@@ -8,11 +8,13 @@ import {
   ReadStatementResult,
 } from './types';
 import { add } from './decimalUtils';
-import { createRecord, deleteRecord, readRecord } from '../repositories';
-import { DbTransaction } from '../repositories/types';
+import { createRecord, deleteRecord, readRecord } from '../repositories/record';
+import { DbTransaction } from '../repositories/record/types';
 import { dictionary, intervals, tags } from '../utils/fileUtils';
+import { createChannel, readChannel } from '../repositories/channel';
+import { UUID } from 'crypto';
 
-const messageService = async (
+const recordService = async (
   request: CustomizedMessageRequest,
 ): Promise<CustomizedMessageResponse> => {
   const msg = validateInput(request.input);
@@ -20,32 +22,39 @@ const messageService = async (
     return msg;
   }
 
-  const { type, params } = msg.body;
-  if (type === 'create') {
-    const record = await createRecord({ ...params, username: request.username });
-    return { status: 'success', body: { type, params, result: record } };
-  } else if (type === 'delete') {
-    const record = await deleteRecord({ ...params, username: request.username });
-    return { status: 'success', body: { type, params, result: record } };
-  } else if (type === 'read') {
-    const { action } = msg.body;
-    const records = await readRecord({ ...params, username: request.username });
-    if (records.length === 0) {
-      return { status: 'failed', msg: 'no_records' };
-    } else if (action === 'read_balance') {
-      return {
-        status: 'success',
-        body: { type, params, action, result: operateReadBalance(records) },
-      };
-    } else if (action === 'read_statement') {
-      return {
-        status: 'success',
-        body: { type, params, action, result: operateReadStatement(records) },
-      };
+  try {
+    const { type, params } = msg.body;
+    const channel_id = await getChannelId(request.username);
+    if (type === 'create') {
+      const record = await createRecord({ ...params, username: request.username, channel_id });
+      return { status: 'success', body: { type, params, result: record } };
+    } else if (type === 'delete') {
+      const record = await deleteRecord({ ...params, username: request.username, channel_id });
+      return { status: 'success', body: { type, params, result: record } };
+    } else if (type === 'read') {
+      const { action } = msg.body;
+      const records = await readRecord({ ...params, username: request.username, channel_id });
+      if (records.length === 0) {
+        return { status: 'failed', msg: 'no_records' };
+      } else if (action === 'read_balance') {
+        return {
+          status: 'success',
+          body: { type, params, action, result: operateReadBalance(records) },
+        };
+      } else if (action === 'read_statement') {
+        return {
+          status: 'success',
+          body: { type, params, action, result: operateReadStatement(records) },
+        };
+      }
+      return { status: 'failed', msg: 'invalid record action' };
     }
-  }
 
-  return { status: 'failed', msg: 'unknown' };
+    return { status: 'failed', msg: 'invalid record type' };
+  } catch (e) {
+    console.error(e);
+    return { status: 'failed', msg: 'sql query excuted error' };
+  }
 };
 
 const validateInput = (args: string[]): CustomizedMessage => {
@@ -162,6 +171,14 @@ const validateInput = (args: string[]): CustomizedMessage => {
   };
 };
 
+const getChannelId = async (username: string): Promise<UUID> => {
+  let [channel] = await readChannel({ username });
+  if (!channel) {
+    channel = await createChannel({ username });
+  }
+  return channel.id;
+};
+
 const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
   let expenditure_sum = 0,
     income_sum = 0;
@@ -195,4 +212,4 @@ const operateReadStatement = (records: DbTransaction[]): ReadStatementResult => 
   return result;
 };
 
-export default messageService;
+export default recordService;

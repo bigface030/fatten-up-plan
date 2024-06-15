@@ -3,7 +3,7 @@ import {
   DbTransaction,
   DeleteRecordParams,
   ReadRecordParams,
-} from '../repositories/types';
+} from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
 
 interface CreateRecordPayload {

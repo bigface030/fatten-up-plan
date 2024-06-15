@@ -3,8 +3,8 @@ import * as line from '@line/bot-sdk';
 import { SYSTEM_COMMANDS } from './constants';
 import { MessageHandlerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
-import messageService from '../services';
-import { DbReadRecordParams, DbTransaction } from '../repositories/types';
+import recordService from '../services';
+import { DbTransaction, ReadRecordParams } from '../repositories/record/types';
 import { ReadBalanceResult, ReadStatementResult } from '../services/types';
 
 const messageEventController = (event: line.MessageEvent) => {
@@ -34,7 +34,7 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
       break;
   }
 
-  const res = await messageService({ input: args, username });
+  const res = await recordService({ input: args, username });
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;
   }
@@ -47,7 +47,7 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
   } else if (type === 'read') {
     const { params, action, result } = res.body;
     if (action === 'read_balance') {
-      return displayBalance({ ...params, username }, result);
+      return displayBalance({ ...params }, result);
     } else if (action === 'read_statement') {
       return displayStatement(result);
     }
@@ -119,7 +119,7 @@ const displayRecords = (records: DbTransaction[], title: string) => {
   return arr.join('\n');
 };
 
-const displayBalance = (params: DbReadRecordParams, result: ReadBalanceResult) => {
+const displayBalance = (params: ReadRecordParams, result: ReadBalanceResult) => {
   const { interval } = params;
   const { expenditure, income, total } = result;
 
