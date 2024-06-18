@@ -1,18 +1,12 @@
 import 'dotenv/config';
 import express, { NextFunction, Request, Response } from 'express';
-import https from 'https';
-import { readFileSync } from 'fs';
 import * as line from '@line/bot-sdk';
 
 import { checkDbVersion } from './db';
 import messageEventController from './controllers';
 
 const app = express();
-const port = process.env.PORT || 443;
-
-const privateKey = readFileSync(process.env.SSL_PRIVATE_KEY as string, 'utf-8');
-const certificate = readFileSync(process.env.SSL_CERTIFICATE as string, 'utf-8');
-const credentials = { key: privateKey, cert: certificate };
+const port = process.env.PORT || 3000;
 
 const config = {
   channelSecret: process.env.CHANNEL_SECRET as string,
@@ -69,8 +63,6 @@ const handleEvent = async (event: line.WebhookEvent) => {
   });
 };
 
-const server = https.createServer(credentials, app);
-
-server.listen(port, () => {
+app.listen(port, () => {
   console.log(`> Ready on ${process.env.APP_SERVER_URL}`);
 });
