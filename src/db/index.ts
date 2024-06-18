@@ -3,9 +3,19 @@ import { Transact } from './type';
 
 const { Pool, types } = pg;
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-});
+const config =
+  process.env.NODE_ENV === 'production'
+    ? {
+        connectionString: process.env.DATABASE_URL,
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {
+        connectionString: process.env.DATABASE_URL,
+      };
+
+const pool = new Pool(config);
 
 types.setTypeParser(types.builtins.NUMERIC, Number);
 types.setTypeParser(types.builtins.DATE, (date) => date);
