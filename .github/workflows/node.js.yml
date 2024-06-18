@@ -33,5 +33,3 @@ jobs:
       run: yarn test
     - name: Build code
       run: yarn build
-    - name: Run DB migration
-      run: DATABASE_URL=${{ secrets.DATABASE_URL }}?sslmode=require yarn migrate up
