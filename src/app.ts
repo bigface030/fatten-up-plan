@@ -25,6 +25,7 @@ app.get('/version', async (req, res) => {
     const result = await checkDbVersion();
     res.send(`DB version: ${result}`);
   } catch (e) {
+    console.error(e);
     res.sendStatus(500);
   }
 });
