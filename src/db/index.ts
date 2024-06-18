@@ -7,9 +7,6 @@ const config =
   process.env.NODE_ENV === 'production'
     ? {
         connectionString: `${process.env.DATABASE_URL}?sslmode=require`,
-        ssl: {
-          rejectUnauthorized: false,
-        },
       }
     : {
         connectionString: process.env.DATABASE_URL,
