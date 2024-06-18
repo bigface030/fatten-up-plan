@@ -34,4 +34,4 @@ jobs:
     - name: Build code
       run: yarn build
     - name: Run db migration
-      run: DATABASE_URL=${{ secrets.DATABASE_URL }} yarn migrate up
+      run: DATABASE_URL=${{ secrets.DATABASE_URL }} yarn migrate up --reject-unauthorized=false
