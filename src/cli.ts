@@ -16,7 +16,7 @@ prompt();
 process.stdin.setEncoding('utf-8');
 
 process.stdin.on('data', async (data: string) => {
-  if (data.trim() === '.version') {
+  if (data === '.version') {
     const version = await db.checkDbVersion();
     console.log(`DB version: ${version}`);
     return prompt();
