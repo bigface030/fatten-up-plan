@@ -1,5 +1,6 @@
 import 'dotenv/config';
 
+import { version as appVersion } from '../package.json';
 import * as db from './db';
 import { messageHandler } from './controllers';
 
@@ -19,8 +20,8 @@ process.stdin.on('data', async (data: string) => {
   const input = data.trim();
 
   if (input === '.version') {
-    const version = await db.checkDbVersion();
-    console.log(`DB version: ${version}`);
+    const dbVersion = await db.checkDbVersion();
+    console.log(`App version: v${appVersion}, DB version: ${dbVersion}`);
     return prompt();
   }
 

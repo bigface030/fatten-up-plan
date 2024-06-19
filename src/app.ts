@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { NextFunction, Request, Response } from 'express';
 import * as line from '@line/bot-sdk';
 
+import { version as appVersion } from '../package.json';
 import { checkDbVersion } from './db';
 import messageEventController from './controllers';
 
@@ -22,8 +23,8 @@ app.get('/', (req, res) => {
 
 app.get('/version', async (req, res) => {
   try {
-    const result = await checkDbVersion();
-    res.send(`DB version: ${result}`);
+    const dbVersion = await checkDbVersion();
+    res.send(`App version: v${appVersion}, DB version: ${dbVersion}`);
   } catch (e) {
     console.error(e);
     res.sendStatus(500);
