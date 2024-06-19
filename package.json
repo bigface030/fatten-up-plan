@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/app.ts",
     "debug": "tsx src/cli.ts",
-    "build": "tsc",
+    "build": "rm -rf dist && tsc",
     "start": "node dist/src/app.js",
     "format": "prettier src --write",
     "lint": "eslint src",
