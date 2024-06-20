@@ -1,2 +1,2 @@
-release: ./node_modules/.bin/node-pg-migrate migrate up
+release: yarn && yarn migrate up
 web: yarn start
