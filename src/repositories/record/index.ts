@@ -40,17 +40,20 @@ export const deleteRecord = async (params: DbDeleteRecordParams): Promise<DbTran
   const { channel_id } = params;
 
   const res = await db.query(
-    `UPDATE records
-    SET deleted_at = CURRENT_TIMESTAMP
-    FROM transactions
-    WHERE id = (
-      SELECT id
-      FROM records
-      WHERE channel_id = $1 AND deleted_at IS NULL
-      ORDER BY created_at DESC
-      LIMIT 1
+    `WITH updated_record AS (
+      UPDATE records
+      SET deleted_at = CURRENT_TIMESTAMP
+      WHERE id = (
+        SELECT id
+        FROM records
+        WHERE channel_id = $1 AND deleted_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT 1
+      )
+      RETURNING *
     )
-    RETURNING *;`,
+    SELECT * FROM updated_record
+    JOIN transactions ON updated_record.id = transactions.record_id;`,
     [channel_id],
   );
 
