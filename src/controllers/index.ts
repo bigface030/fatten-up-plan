@@ -95,6 +95,8 @@ const formatTags = (result: Record<string, Record<string, string[]>>) => {
 };
 
 const displayRecords = (records: DbTransaction[], title: string) => {
+  if (records.length === 0) return localization['no_records'];
+
   const arr = [title];
 
   records.forEach(

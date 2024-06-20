@@ -36,7 +36,9 @@ export const createRecord = (params: DbCreateRecordParams): Promise<DbTransactio
   });
 };
 
-export const deleteRecord = async (params: DbDeleteRecordParams): Promise<DbTransaction> => {
+export const deleteRecord = async (
+  params: DbDeleteRecordParams,
+): Promise<DbTransaction | undefined> => {
   const { channel_id } = params;
 
   const res = await db.query(
