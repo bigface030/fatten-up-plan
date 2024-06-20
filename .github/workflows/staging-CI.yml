@@ -5,7 +5,7 @@ name: staging CI
 on:
   push:
     branches:
-      - bigface030-move-migration-command
+      - develop
 
 jobs:
   build:
