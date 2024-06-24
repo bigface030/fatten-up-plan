@@ -5,7 +5,7 @@ import {
   ReadStatementResult,
 } from './types';
 import { add } from './decimalUtils';
-import { createRecord, deleteRecord, readRecord } from '../repositories/record';
+import { createRecords, deleteLatestRecord, readRecords } from '../repositories/record';
 import { DbTransaction } from '../repositories/record/types';
 import { createChannel, readChannel } from '../repositories/channel';
 import { UUID } from 'crypto';
@@ -23,15 +23,19 @@ const recordService = async (
     const { type, params } = msg.body;
     const channel_id = await getChannelId(request.username);
     if (type === 'create') {
-      const record = await createRecord({ ...params, username: request.username, channel_id });
+      const [record] = await createRecords([{ ...params, username: request.username, channel_id }]);
       return { status: 'success', body: { type, params, result: record } };
     } else if (type === 'delete') {
-      const record = await deleteRecord({ ...params, username: request.username, channel_id });
+      const record = await deleteLatestRecord({
+        ...params,
+        username: request.username,
+        channel_id,
+      });
       if (!record) return { status: 'failed', msg: 'no_records' };
       return { status: 'success', body: { type, params, result: record } };
     } else if (type === 'read') {
       const { action } = msg.body;
-      const records = await readRecord({ ...params, username: request.username, channel_id });
+      const records = await readRecords({ ...params, username: request.username, channel_id });
       if (records.length === 0) {
         return { status: 'failed', msg: 'no_records' };
       } else if (action === 'read_balance') {

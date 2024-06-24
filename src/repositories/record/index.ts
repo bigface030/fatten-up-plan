@@ -6,37 +6,46 @@ import {
   DbTransaction,
 } from './types';
 
-export const createRecord = (params: DbCreateRecordParams): Promise<DbTransaction> => {
+export const createRecords = (paramsList: DbCreateRecordParams[]): Promise<DbTransaction[]> => {
   return db.transact(async (query) => {
-    const {
-      channel_id,
-      activity,
-      description,
-      username,
-      amount,
-      customized_classification,
-      customized_tag,
-    } = params;
+    const results = [];
+    let transaction_order = paramsList.length > 1 ? 1 : null;
 
-    const record = await query(
-      `INSERT INTO records (channel_id, activity, description, created_by)
-    VALUES ($1, $2, $3, $4)
-    RETURNING *;`,
-      [channel_id, activity, description, username],
-    );
+    for (const params of paramsList) {
+      const {
+        channel_id,
+        activity,
+        description,
+        username,
+        amount,
+        customized_classification,
+        customized_tag,
+      } = params;
 
-    const transaction = await query(
-      `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
-    VALUES ($1, $2, $3, $4, $5)
-    RETURNING *;`,
-      [record.rows[0].id, username, amount, customized_classification, customized_tag],
-    );
+      const record = await query(
+        `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *;`,
+        [channel_id, activity, description, username, transaction_order],
+      );
 
-    return { ...record.rows[0], ...transaction.rows[0] };
+      const transaction = await query(
+        `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING *;`,
+        [record.rows[0].id, username, amount, customized_classification, customized_tag],
+      );
+
+      results.push({ ...record.rows[0], ...transaction.rows[0] });
+
+      transaction_order && transaction_order++;
+    }
+
+    return results;
   });
 };
 
-export const deleteRecord = async (
+export const deleteLatestRecord = async (
   params: DbDeleteRecordParams,
 ): Promise<DbTransaction | undefined> => {
   const { channel_id } = params;
@@ -49,7 +58,7 @@ export const deleteRecord = async (
         SELECT id
         FROM records
         WHERE channel_id = $1 AND deleted_at IS NULL
-        ORDER BY created_at DESC
+        ORDER BY created_at DESC, transaction_order DESC
         LIMIT 1
       )
       RETURNING *
@@ -62,7 +71,7 @@ export const deleteRecord = async (
   return res.rows[0];
 };
 
-export const readRecord = async (params: DbReadRecordParams): Promise<DbTransaction[]> => {
+export const readRecords = async (params: DbReadRecordParams): Promise<DbTransaction[]> => {
   const { channel_id, interval } = params;
 
   let res;

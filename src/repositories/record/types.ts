@@ -10,6 +10,7 @@ interface DbRecord {
   deleted_at: string | null;
   created_by: string | null;
   deleted_by: string | null;
+  transaction_order: number | null;
 }
 
 export interface DbTransaction extends DbRecord {
