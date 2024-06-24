@@ -6,7 +6,7 @@ import {
 } from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
 
-interface CreateRecordPayload {
+export interface CreateRecordPayload {
   type: 'create';
   params: CreateRecordParams;
 }
@@ -24,12 +24,17 @@ interface ReadRecordPayload<T> {
   params: ReadRecordParams;
 }
 
-type SuccessfulRequest = {
+export type SuccessfulRequestBody =
+  | CreateRecordPayload
+  | DeleteRecordPayload
+  | ReadRecordPayload<Action>;
+
+export type SuccessfulRequest = {
   status: 'success';
-  body: CreateRecordPayload | DeleteRecordPayload | ReadRecordPayload<Action>;
+  body: SuccessfulRequestBody;
 };
 
-interface FailedRequest {
+export interface FailedRequest {
   status: 'failed';
   msg: string;
 }
@@ -37,7 +42,7 @@ interface FailedRequest {
 export type CustomizedMessage = SuccessfulRequest | FailedRequest;
 
 export interface CustomizedMessageRequest {
-  input: string[];
+  tokenGroups: string[][];
   username: string;
 }
 
@@ -47,16 +52,33 @@ export interface ReadBalanceResult {
   total: number;
 }
 
+export interface ReadBalanceResultWithParams extends ReadBalanceResult {
+  params: ReadRecordParams;
+}
+
 export type ReadStatementResult = Record<string, DbTransaction[]>;
 
-export type CreateRecordResponse = CreateRecordPayload & { result: DbTransaction };
-export type DeleteRecordResponse = DeleteRecordPayload & { result: DbTransaction };
-export type ReadBalanceResponse = ReadRecordPayload<'read_balance'> & {
-  result: ReadBalanceResult;
-};
-export type ReadStatementResponse = ReadRecordPayload<'read_statement'> & {
+interface CreateRecordResponse {
+  type: 'create';
+  result: DbTransaction[];
+}
+
+interface DeleteRecordResponse {
+  type: 'delete';
+  result: DbTransaction;
+}
+
+interface ReadBalanceResponse {
+  type: 'read';
+  action: 'read_balance';
+  result: ReadBalanceResultWithParams;
+}
+
+interface ReadStatementResponse {
+  type: 'read';
+  action: 'read_statement';
   result: ReadStatementResult;
-};
+}
 
 type SuccessfulResponse = {
   status: 'success';

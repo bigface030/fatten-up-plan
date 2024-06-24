@@ -4,8 +4,8 @@ import { SYSTEM_COMMANDS } from './constants';
 import { MessageHandlerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
 import recordService from '../services';
-import { DbTransaction, ReadRecordParams } from '../repositories/record/types';
-import { ReadBalanceResult, ReadStatementResult } from '../services/types';
+import { DbTransaction } from '../repositories/record/types';
+import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 
 const messageEventController = (event: line.MessageEvent) => {
   const msg = event.message as line.TextEventMessage;
@@ -34,20 +34,21 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
       break;
   }
 
-  const res = await recordService({ input: args, username });
+  const res = await recordService({ tokenGroups: [args], username });
+
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;
   }
 
   const { type } = res.body;
   if (type === 'create') {
-    return displayRecords([res.body.result], localization['create_success']);
+    return displayRecords(res.body.result, localization['create_success']);
   } else if (type === 'delete') {
     return displayRecords([res.body.result], localization['delete_success']);
   } else if (type === 'read') {
-    const { params, action, result } = res.body;
+    const { action, result } = res.body;
     if (action === 'read_balance') {
-      return displayBalance({ ...params }, result);
+      return displayBalance(result);
     } else if (action === 'read_statement') {
       return displayStatement(result);
     }
@@ -121,9 +122,9 @@ const displayRecords = (records: DbTransaction[], title: string) => {
   return arr.join('\n');
 };
 
-const displayBalance = (params: ReadRecordParams, result: ReadBalanceResult) => {
+const displayBalance = (result: ReadBalanceResultWithParams) => {
+  const { expenditure, income, total, params } = result;
   const { interval } = params;
-  const { expenditure, income, total } = result;
 
   const arr: string[] = [];
 
