@@ -18,9 +18,9 @@ const messageEventController = (event: line.MessageEvent) => {
 export const messageHandler = async (source: MessageHandlerSource): Promise<string> => {
   const { text, username } = source;
 
-  const args = text.replace(/\s+/g, ' ').trim().split(' ');
+  const textInput = text.trim();
 
-  switch (dictionary[args[0]]) {
+  switch (dictionary[textInput]) {
     case SYSTEM_COMMANDS.HELP: {
       return help;
     }
@@ -34,7 +34,11 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
       break;
   }
 
-  const res = await recordService({ tokenGroups: [args], username });
+  const tokenGroups = textInput
+    .split('\n')
+    .map((input) => input.trim().replace(/\s+/g, ' ').split(' '));
+
+  const res = await recordService({ tokenGroups, username });
 
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;
