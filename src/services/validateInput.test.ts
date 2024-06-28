@@ -6,18 +6,18 @@ import { validateInput } from './validateInput';
 test('input invalid command', () => {
   expect(validateInput(['ABC'])).toEqual({
     status: 'failed',
-    msg: 'Invalid command',
+    msg: 'user_error_invalid_command',
   });
   expect(validateInput(['支出', '100'])).toEqual({
     status: 'failed',
-    msg: 'Invalid tag',
+    msg: 'admin_error_invalid_tag',
   });
 });
 
 test('delete the latest record', () => {
   expect(validateInput(['刪除上一筆', 'ABC'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params length',
+    msg: 'user_error_invalid_params_length',
   });
   expect(validateInput(['刪除上一筆'])).toEqual({
     status: 'success',
@@ -31,7 +31,7 @@ test('delete the latest record', () => {
 test('read balance of the records', () => {
   expect(validateInput(['查詢', '今日', 'ABC'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params length',
+    msg: 'user_error_invalid_params_length',
   });
   expect(validateInput(['查詢', '今日'])).toEqual({
     status: 'success',
@@ -45,23 +45,23 @@ test('read balance of the records', () => {
   });
   expect(validateInput(['查詢'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params length',
+    msg: 'user_error_invalid_params_length',
   });
   expect(validateInput(['查詢', '20240531', '20240601', 'ABC'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params length',
+    msg: 'user_error_invalid_params_length',
   });
   expect(validateInput(['查詢', '1130531'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params value',
+    msg: 'user_error_invalid_params_value',
   });
   expect(validateInput(['查詢', '1130531', '1130601'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params value',
+    msg: 'user_error_invalid_params_value',
   });
   expect(validateInput(['查詢', '20240531', '1130601'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params value',
+    msg: 'user_error_invalid_params_value',
   });
   expect(validateInput(['查詢', '20240531'])).toEqual({
     status: 'success',
@@ -98,11 +98,11 @@ test('read balance of the records', () => {
 test('create record', () => {
   expect(validateInput(['早餐', '100', '信用卡', 'ABC'])).toEqual({
     status: 'failed',
-    msg: 'Invalid params length',
+    msg: 'user_error_invalid_params_length',
   });
   expect(validateInput(['早餐', '$100'])).toEqual({
     status: 'failed',
-    msg: 'Invalid amount',
+    msg: 'user_error_invalid_params_value',
   });
   expect(validateInput(['早餐', '100'])).toEqual({
     status: 'success',

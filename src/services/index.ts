@@ -34,7 +34,7 @@ const recordService = async (
   const { tokenGroups, username } = request;
 
   if (tokenGroups.length > 5) {
-    return { status: 'failed', msg: 'exceed max length of lines for multi-line input' };
+    return { status: 'failed', msg: 'user_error_invalid_multi_line_length' };
   }
 
   const messages = tokenGroups.map(validateInput);
@@ -47,7 +47,7 @@ const recordService = async (
   }
 
   if (successMsgs.length > 1 && !successMsgs.every((msg) => msg.body.type === 'create')) {
-    return { status: 'failed', msg: 'only support create type for multi-line input' };
+    return { status: 'failed', msg: 'user_error_invalid_multi_line_type' };
   }
 
   const [msg] = successMsgs;
@@ -84,13 +84,13 @@ const recordService = async (
           body: { type, action, result: operateReadStatement(records) },
         };
       }
-      return { status: 'failed', msg: 'invalid record action' };
+      return { status: 'failed', msg: 'admin_error_invalid_record_action' };
     }
 
-    return { status: 'failed', msg: 'invalid record type' };
+    return { status: 'failed', msg: 'admin_error_invalid_record_type' };
   } catch (e) {
     console.error(e);
-    return { status: 'failed', msg: 'sql query excuted error' };
+    return { status: 'failed', msg: 'db_error_sql_query_execution_failed' };
   }
 };
 

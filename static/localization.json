@@ -9,5 +9,10 @@
   "all": "全部",
   "no_records": "無符合查詢條件的紀錄",
   "create_success": "新增成功",
-  "delete_success": "刪除成功"
+  "delete_success": "刪除成功",
+  "user_error_invalid_command": "無效的指令！請輸入「幫助」以查看所有支援的指令。",
+  "user_error_invalid_params_length": "無效的參數數量！請輸入「幫助」以查看各指令的使用方法。",
+  "user_error_invalid_params_value": "無效的參數值！請輸入「幫助」以查看各指令的使用方法。",
+  "user_error_invalid_multi_line_length": "超出多行輸入的最多新增紀錄筆數。",
+  "user_error_invalid_multi_line_type": "多行輸入功能僅支援新增紀錄的操作。"
 }

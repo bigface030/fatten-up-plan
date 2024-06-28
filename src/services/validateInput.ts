@@ -7,14 +7,14 @@ export const validateInput = (args: string[]): CustomizedMessage => {
   if (!dictionary[args[0]] && !tags[args[0]])
     return {
       status: 'failed',
-      msg: 'Invalid command',
+      msg: 'user_error_invalid_command',
     };
 
   if (dictionary[args[0]] === COMMANDS.DELETE_LATEST) {
     if (args.length > 1) {
       return {
         status: 'failed',
-        msg: 'Invalid params length',
+        msg: 'user_error_invalid_params_length',
       };
     }
     return {
@@ -33,7 +33,7 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       if (params.length > 1) {
         return {
           status: 'failed',
-          msg: 'Invalid params length',
+          msg: 'user_error_invalid_params_length',
         };
       }
       return {
@@ -50,13 +50,13 @@ export const validateInput = (args: string[]): CustomizedMessage => {
     if (params.length < 1 || params.length > 2) {
       return {
         status: 'failed',
-        msg: 'Invalid params length',
+        msg: 'user_error_invalid_params_length',
       };
     }
     if (!params.every(isValidDateString)) {
       return {
         status: 'failed',
-        msg: 'Invalid params value',
+        msg: 'user_error_invalid_params_value',
       };
     }
     return {
@@ -74,7 +74,7 @@ export const validateInput = (args: string[]): CustomizedMessage => {
   if (!tags[args[0]])
     return {
       status: 'failed',
-      msg: 'Invalid tag',
+      msg: 'admin_error_invalid_tag',
     };
 
   const activity = dictionary[tags[args[0]].transaction_type],
@@ -86,20 +86,20 @@ export const validateInput = (args: string[]): CustomizedMessage => {
   if (args.length > 3) {
     return {
       status: 'failed',
-      msg: 'Invalid params length',
+      msg: 'user_error_invalid_params_length',
     };
   }
 
   if (isNaN(amount))
     return {
       status: 'failed',
-      msg: 'Invalid amount',
+      msg: 'user_error_invalid_params_value',
     };
 
   if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(activity))
     return {
       status: 'failed',
-      msg: 'Admin configs setting error',
+      msg: 'admin_error_config_setting',
     };
 
   return {
