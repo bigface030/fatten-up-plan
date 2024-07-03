@@ -1,3 +1,4 @@
+import { TransactionActivity } from '../repositories/record/types';
 import { dictionary, intervals, tags } from '../utils/fileUtils';
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { datesFor, isValidDateString } from './dateUtils';
@@ -77,7 +78,7 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       msg: 'admin_error_invalid_tag',
     };
 
-  const activity = dictionary[tags[args[0]].transaction_type],
+  const activity = dictionary[tags[args[0]].transaction_type] as TransactionActivity,
     customized_tag = args[0],
     customized_classification = tags[args[0]].classification,
     amount = Math.abs(Number(args[1])),

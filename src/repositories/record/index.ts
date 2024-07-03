@@ -1,47 +1,96 @@
 import * as db from '../../db';
 import {
-  DbCreateRecordParams,
+  DbCreateTransactionParams,
+  DbCreateTransferParams,
   DbDeleteRecordParams,
   DbReadRecordParams,
   DbTransaction,
+  DbTransfer,
 } from './types';
 
-export const createRecords = (paramsList: DbCreateRecordParams[]): Promise<DbTransaction[]> => {
+export const createTransactions = (
+  paramsList: DbCreateTransactionParams[],
+): Promise<DbTransaction[]> => {
   return db.transact(async (query) => {
-    const results = [];
-    let transaction_order = paramsList.length > 1 ? 1 : null;
+    return Promise.all(
+      paramsList.map(async (params, index) => {
+        const {
+          channel_id,
+          activity,
+          description,
+          username,
+          amount,
+          customized_classification,
+          customized_tag,
+          splits,
+        } = params;
 
-    for (const params of paramsList) {
-      const {
-        channel_id,
-        activity,
-        description,
-        username,
-        amount,
-        customized_classification,
-        customized_tag,
-      } = params;
+        const transaction_order = paramsList.length > 1 ? index + 1 : null;
 
-      const record = await query(
-        `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *;`,
-        [channel_id, activity, description, username, transaction_order],
-      );
+        const record = await query(
+          `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING *;`,
+          [channel_id, activity, description, username, transaction_order],
+        );
 
-      const transaction = await query(
-        `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING *;`,
-        [record.rows[0].id, username, amount, customized_classification, customized_tag],
-      );
+        const transaction = await query(
+          `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING *;`,
+          [record.rows[0].id, username, amount, customized_classification, customized_tag],
+        );
 
-      results.push({ ...record.rows[0], ...transaction.rows[0] });
+        if (splits && splits?.length > 0) {
+          await Promise.all(
+            splits.map((split) =>
+              query(
+                `INSERT INTO splits (record_id, username, amount)
+                VALUES ($1, $2, $3);`,
+                [record.rows[0].id, split.username, split.amount],
+              ),
+            ),
+          );
+        }
 
-      transaction_order && transaction_order++;
-    }
+        return { ...record.rows[0], ...transaction.rows[0] };
+      }),
+    );
+  });
+};
 
-    return results;
+export const createTransfers = (paramsList: DbCreateTransferParams[]): Promise<DbTransfer[]> => {
+  if (!paramsList.every((params) => params.splits.length > 0))
+    return Promise.reject('admin_error_zero_split_length');
+
+  return db.transact(async (query) => {
+    return Promise.all(
+      paramsList.map(async (params, index) => {
+        const { channel_id, activity, description, username, splits } = params;
+
+        const transaction_order = paramsList.length > 1 ? index + 1 : null;
+
+        const record = await query(
+          `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
+          VALUES ($1, $2, $3, $4, $5)
+          RETURNING *;`,
+          [channel_id, activity, description, username, transaction_order],
+        );
+
+        const _splits = await Promise.all(
+          splits.map((split) =>
+            query(
+              `INSERT INTO splits (record_id, username, amount)
+              VALUES ($1, $2, $3)
+              RETURNING *;`,
+              [record.rows[0].id, split.username, split.amount],
+            ),
+          ),
+        );
+
+        return { ...record.rows[0], splits: _splits.map((split) => split.rows[0]) };
+      }),
+    );
   });
 };
 

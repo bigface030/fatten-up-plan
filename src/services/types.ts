@@ -1,14 +1,14 @@
 import {
-  CreateRecordParams,
+  CreateTransactionParams,
   DbTransaction,
   DeleteRecordParams,
   ReadRecordParams,
 } from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
 
-export interface CreateRecordPayload {
+export interface CreateTransactionPayload {
   type: 'create';
-  params: CreateRecordParams;
+  params: CreateTransactionParams;
 }
 
 interface DeleteRecordPayload {
@@ -25,7 +25,7 @@ interface ReadRecordPayload<T> {
 }
 
 export type SuccessfulRequestBody =
-  | CreateRecordPayload
+  | CreateTransactionPayload
   | DeleteRecordPayload
   | ReadRecordPayload<Action>;
 

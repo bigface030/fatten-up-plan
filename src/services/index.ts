@@ -1,5 +1,5 @@
 import {
-  CreateRecordPayload,
+  CreateTransactionPayload,
   CustomizedMessage,
   CustomizedMessageRequest,
   CustomizedMessageResponse,
@@ -10,7 +10,7 @@ import {
   SuccessfulRequestBody,
 } from './types';
 import { add } from './decimalUtils';
-import { createRecords, deleteLatestRecord, readRecords } from '../repositories/record';
+import { createTransactions, deleteLatestRecord, readRecords } from '../repositories/record';
 import { DbTransaction } from '../repositories/record/types';
 import { createChannel, readChannel } from '../repositories/channel';
 import { UUID } from 'crypto';
@@ -24,7 +24,7 @@ function isFailedMsg(msg: CustomizedMessage): msg is FailedRequest {
   return msg.status === 'failed';
 }
 
-function isCreateRecordBody(body: SuccessfulRequestBody): body is CreateRecordPayload {
+function isCreateTransactionBody(body: SuccessfulRequestBody): body is CreateTransactionPayload {
   return body.type === 'create';
 }
 
@@ -58,11 +58,11 @@ const recordService = async (
     const channel_id = await getChannelId(username);
 
     if (type === 'create') {
-      const createRecordParams = successMsgs
+      const createTransactionParams = successMsgs
         .map((msg) => msg.body)
-        .filter(isCreateRecordBody)
+        .filter(isCreateTransactionBody)
         .map((body) => ({ ...body.params, username, channel_id }));
-      const records = await createRecords(createRecordParams);
+      const records = await createTransactions(createTransactionParams);
       return { status: 'success', body: { type, result: records } };
     } else if (type === 'delete') {
       const record = await deleteLatestRecord({ ...params, username, channel_id });
