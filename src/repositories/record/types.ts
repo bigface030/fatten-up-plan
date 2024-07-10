@@ -25,6 +25,10 @@ export interface DbTransaction extends DbRecord {
   customized_tag: string | null;
 }
 
+export interface DbSplit extends DbRecord, Split {
+  // record_id: UUID;
+}
+
 export interface DbTransfer extends DbRecord {
   splits: Split[];
 }
@@ -50,7 +54,9 @@ export interface CreateTransferParams extends CreateRecordParams<TransferActivit
   splits: Split[];
 }
 
-export interface DeleteRecordParams {}
+export interface DeleteRecordParams {
+  activity?: Activity;
+}
 
 export interface ReadRecordParams {
   interval: string[];

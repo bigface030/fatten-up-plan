@@ -1,12 +1,15 @@
+import { UUID } from 'crypto';
 import * as db from '../../db';
 import {
   DbCreateTransactionParams,
   DbCreateTransferParams,
   DbDeleteRecordParams,
   DbReadRecordParams,
+  DbSplit,
   DbTransaction,
   DbTransfer,
 } from './types';
+import { groupBy } from './utils';
 
 export const createTransactions = (
   paramsList: DbCreateTransactionParams[],
@@ -97,25 +100,46 @@ export const createTransfers = (paramsList: DbCreateTransferParams[]): Promise<D
 export const deleteLatestRecord = async (
   params: DbDeleteRecordParams,
 ): Promise<DbTransaction | undefined> => {
-  const { channel_id } = params;
+  const { channel_id, activity } = params;
 
-  const res = await db.query(
-    `WITH updated_record AS (
-      UPDATE records
-      SET deleted_at = CURRENT_TIMESTAMP
-      WHERE id = (
-        SELECT id
-        FROM records
-        WHERE channel_id = $1 AND deleted_at IS NULL
-        ORDER BY created_at DESC, transaction_order DESC
-        LIMIT 1
+  let res;
+  if (activity) {
+    res = await db.query(
+      `WITH updated_record AS (
+        UPDATE records
+        SET deleted_at = CURRENT_TIMESTAMP
+        WHERE id = (
+          SELECT id
+          FROM records
+          WHERE channel_id = $1 AND deleted_at IS NULL AND activity = $2
+          ORDER BY created_at DESC, transaction_order DESC
+          LIMIT 1
+        )
+        RETURNING *
       )
-      RETURNING *
-    )
-    SELECT * FROM updated_record
-    JOIN transactions ON updated_record.id = transactions.record_id;`,
-    [channel_id],
-  );
+      SELECT * FROM updated_record
+      JOIN transactions ON updated_record.id = transactions.record_id;`,
+      [channel_id, activity],
+    );
+  } else {
+    res = await db.query(
+      `WITH updated_record AS (
+        UPDATE records
+        SET deleted_at = CURRENT_TIMESTAMP
+        WHERE id = (
+          SELECT id
+          FROM records
+          WHERE channel_id = $1 AND deleted_at IS NULL
+          ORDER BY created_at DESC, transaction_order DESC
+          LIMIT 1
+        )
+        RETURNING *
+      )
+      SELECT * FROM updated_record
+      JOIN transactions ON updated_record.id = transactions.record_id;`,
+      [channel_id],
+    );
+  }
 
   return res.rows[0];
 };
@@ -145,4 +169,53 @@ export const readRecords = async (params: DbReadRecordParams): Promise<DbTransac
   }
 
   return res.rows;
+};
+
+export const readTransfers = async (params: DbReadRecordParams): Promise<DbTransfer[]> => {
+  const { channel_id, interval } = params;
+
+  let res;
+  if (interval.length > 1) {
+    res = await db.query(
+      `SELECT * FROM records
+      JOIN splits ON records.id = splits.record_id
+      WHERE channel_id = $1
+      AND accounting_date BETWEEN $2 AND $3
+      AND deleted_at IS NULL;`,
+      [channel_id, interval[0], interval[1]],
+    );
+  } else {
+    res = await db.query(
+      `SELECT * FROM records
+      JOIN splits ON records.id = splits.record_id
+      WHERE channel_id = $1
+      AND accounting_date = $2
+      AND deleted_at IS NULL`,
+      [channel_id, interval[0]],
+    );
+  }
+
+  const allocations = groupBy<DbSplit, UUID>(res.rows, (row) => row.id);
+
+  const result: DbTransfer[] = [];
+  for (const [key, arr] of allocations) {
+    result.push({
+      id: key,
+      channel_id: arr[0].channel_id,
+      accounting_date: arr[0].accounting_date,
+      activity: arr[0].activity,
+      description: arr[0].description,
+      created_at: arr[0].created_at,
+      deleted_at: arr[0].deleted_at,
+      created_by: arr[0].created_by,
+      deleted_by: arr[0].deleted_by,
+      transaction_order: arr[0].transaction_order,
+      splits: arr.map((record) => ({
+        username: record.username,
+        amount: record.amount,
+      })),
+    });
+  }
+
+  return result;
 };
