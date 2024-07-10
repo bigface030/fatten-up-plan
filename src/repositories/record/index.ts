@@ -100,18 +100,18 @@ export const createTransfers = (paramsList: DbCreateTransferParams[]): Promise<D
 export const deleteLatestRecord = async (
   params: DbDeleteRecordParams,
 ): Promise<DbTransaction | undefined> => {
-  const { channel_id, activity } = params;
+  const { channel_id, username, activity } = params;
 
   let res;
   if (activity) {
     res = await db.query(
       `WITH updated_record AS (
         UPDATE records
-        SET deleted_at = CURRENT_TIMESTAMP
+        SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $1
         WHERE id = (
           SELECT id
           FROM records
-          WHERE channel_id = $1 AND deleted_at IS NULL AND activity = $2
+          WHERE channel_id = $2 AND deleted_at IS NULL AND activity = $3
           ORDER BY created_at DESC, transaction_order DESC
           LIMIT 1
         )
@@ -119,17 +119,17 @@ export const deleteLatestRecord = async (
       )
       SELECT * FROM updated_record
       JOIN transactions ON updated_record.id = transactions.record_id;`,
-      [channel_id, activity],
+      [username, channel_id, activity],
     );
   } else {
     res = await db.query(
       `WITH updated_record AS (
         UPDATE records
-        SET deleted_at = CURRENT_TIMESTAMP
+        SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $1
         WHERE id = (
           SELECT id
           FROM records
-          WHERE channel_id = $1 AND deleted_at IS NULL
+          WHERE channel_id = $2 AND deleted_at IS NULL
           ORDER BY created_at DESC, transaction_order DESC
           LIMIT 1
         )
@@ -137,7 +137,7 @@ export const deleteLatestRecord = async (
       )
       SELECT * FROM updated_record
       JOIN transactions ON updated_record.id = transactions.record_id;`,
-      [channel_id],
+      [username, channel_id],
     );
   }
 
