@@ -1,4 +1,4 @@
-import { TransactionActivity } from '../repositories/record/types';
+import { TransactionActivity } from '@db/type';
 import { dictionary, intervals, tags } from '../utils/fileUtils';
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { datesFor, isValidDateString } from './dateUtils';

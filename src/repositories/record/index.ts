@@ -5,15 +5,15 @@ import {
   DbCreateTransferParams,
   DbDeleteRecordParams,
   DbReadRecordParams,
-  DbSplit,
-  DbTransaction,
-  DbTransfer,
+  TransferSummary,
+  TransactionSummary,
 } from './types';
 import { groupBy } from './utils';
+import { DbRecord, DbSplit } from '@db/type';
 
 export const createTransactions = (
   paramsList: DbCreateTransactionParams[],
-): Promise<DbTransaction[]> => {
+): Promise<TransactionSummary[]> => {
   return db.transact(async (query) => {
     return Promise.all(
       paramsList.map(async (params, index) => {
@@ -62,7 +62,9 @@ export const createTransactions = (
   });
 };
 
-export const createTransfers = (paramsList: DbCreateTransferParams[]): Promise<DbTransfer[]> => {
+export const createTransfers = (
+  paramsList: DbCreateTransferParams[],
+): Promise<TransferSummary[]> => {
   if (!paramsList.every((params) => params.splits.length > 0))
     return Promise.reject('admin_error_zero_split_length');
 
@@ -99,7 +101,7 @@ export const createTransfers = (paramsList: DbCreateTransferParams[]): Promise<D
 
 export const deleteLatestRecord = async (
   params: DbDeleteRecordParams,
-): Promise<DbTransaction | undefined> => {
+): Promise<TransactionSummary | undefined> => {
   const { channel_id, username, activity } = params;
 
   let res;
@@ -144,7 +146,7 @@ export const deleteLatestRecord = async (
   return res.rows[0];
 };
 
-export const readRecords = async (params: DbReadRecordParams): Promise<DbTransaction[]> => {
+export const readRecords = async (params: DbReadRecordParams): Promise<TransactionSummary[]> => {
   const { channel_id, interval } = params;
 
   let res;
@@ -171,7 +173,7 @@ export const readRecords = async (params: DbReadRecordParams): Promise<DbTransac
   return res.rows;
 };
 
-export const readTransfers = async (params: DbReadRecordParams): Promise<DbTransfer[]> => {
+export const readTransfers = async (params: DbReadRecordParams): Promise<TransferSummary[]> => {
   const { channel_id, interval } = params;
 
   let res;
@@ -195,9 +197,9 @@ export const readTransfers = async (params: DbReadRecordParams): Promise<DbTrans
     );
   }
 
-  const allocations = groupBy<DbSplit, UUID>(res.rows, (row) => row.id);
+  const allocations = groupBy<DbRecord & DbSplit, UUID>(res.rows, (row) => row.id);
 
-  const result: DbTransfer[] = [];
+  const result: TransferSummary[] = [];
   for (const [key, arr] of allocations) {
     result.push({
       id: key,

@@ -11,10 +11,10 @@ import {
 } from './types';
 import { add } from './decimalUtils';
 import { createTransactions, deleteLatestRecord, readRecords } from '../repositories/record';
-import { DbTransaction } from '../repositories/record/types';
 import { createChannel, readChannel } from '../repositories/channel';
 import { UUID } from 'crypto';
 import { validateInput } from './validateInput';
+import { TransactionSummary } from '@repositories/record/types';
 
 function isSuccessMsg(msg: CustomizedMessage): msg is SuccessfulRequest {
   return msg.status === 'success';
@@ -102,7 +102,7 @@ const getChannelId = async (username: string): Promise<UUID> => {
   return channel.id;
 };
 
-const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
+const operateReadBalance = (records: TransactionSummary[]): ReadBalanceResult => {
   let expenditure_sum = 0,
     income_sum = 0;
   for (const { activity, amount } of records) {
@@ -120,7 +120,7 @@ const operateReadBalance = (records: DbTransaction[]): ReadBalanceResult => {
   };
 };
 
-const operateReadStatement = (records: DbTransaction[]): ReadStatementResult => {
+const operateReadStatement = (records: TransactionSummary[]): ReadStatementResult => {
   const result: ReadStatementResult = {};
 
   records.forEach((record) => {

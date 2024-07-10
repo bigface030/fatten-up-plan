@@ -4,7 +4,7 @@ import { SYSTEM_COMMANDS } from './constants';
 import { MessageHandlerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
 import recordService from '../services';
-import { DbTransaction } from '../repositories/record/types';
+import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 
 const messageEventController = (event: line.MessageEvent) => {
@@ -99,7 +99,7 @@ const formatTags = (result: Record<string, Record<string, string[]>>) => {
   return arr.join('\n');
 };
 
-const displayRecords = (records: DbTransaction[], title: string) => {
+const displayRecords = (records: TransactionSummary[], title: string) => {
   if (records.length === 0) return localization['no_records'];
 
   const arr = [title];

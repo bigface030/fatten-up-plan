@@ -1,8 +1,8 @@
 import {
   CreateTransactionParams,
-  DbTransaction,
   DeleteRecordParams,
   ReadRecordParams,
+  TransactionSummary,
 } from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
 
@@ -56,16 +56,16 @@ export interface ReadBalanceResultWithParams extends ReadBalanceResult {
   params: ReadRecordParams;
 }
 
-export type ReadStatementResult = Record<string, DbTransaction[]>;
+export type ReadStatementResult = Record<string, TransactionSummary[]>;
 
 interface CreateRecordResponse {
   type: 'create';
-  result: DbTransaction[];
+  result: TransactionSummary[];
 }
 
 interface DeleteRecordResponse {
   type: 'delete';
-  result: DbTransaction;
+  result: TransactionSummary;
 }
 
 interface ReadBalanceResponse {

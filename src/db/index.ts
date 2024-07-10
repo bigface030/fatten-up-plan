@@ -1,5 +1,4 @@
-import pg from 'pg';
-import { Transact } from './type';
+import pg, { ClientBase } from 'pg';
 
 const { Pool, types } = pg;
 
@@ -14,6 +13,10 @@ const pool = new Pool({
 
 types.setTypeParser(types.builtins.NUMERIC, Number);
 types.setTypeParser(types.builtins.DATE, (date) => date);
+
+type AppQuery = ClientBase['query'];
+
+type Transact = <T>(fn: (query: AppQuery) => Promise<T>) => Promise<T>;
 
 export const query = pool.query.bind(pool);
 

@@ -1,10 +1,7 @@
+import { Activity, TransactionActivity, TransferActivity } from '@db/type';
 import { UUID } from 'crypto';
 
-export type TransactionActivity = 'expenditure' | 'income';
-export type TransferActivity = 'transfer';
-type Activity = TransactionActivity & TransferActivity;
-
-interface DbRecord {
+export interface TransactionSummary {
   id: UUID;
   channel_id: UUID;
   accounting_date: string; // 2024-05-31
@@ -15,21 +12,24 @@ interface DbRecord {
   created_by: string | null;
   deleted_by: string | null;
   transaction_order: number | null;
-}
-
-export interface DbTransaction extends DbRecord {
-  // record_id: UUID;
+  //   record_id: UUID;
   username: string;
   amount: number;
   customized_classification: string | null;
   customized_tag: string | null;
 }
 
-export interface DbSplit extends DbRecord, Split {
-  // record_id: UUID;
-}
-
-export interface DbTransfer extends DbRecord {
+export interface TransferSummary {
+  id: UUID;
+  channel_id: UUID;
+  accounting_date: string; // 2024-05-31
+  activity: Activity;
+  description: string | null;
+  created_at: string | null;
+  deleted_at: string | null;
+  created_by: string | null;
+  deleted_by: string | null;
+  transaction_order: number | null;
   splits: Split[];
 }
 
