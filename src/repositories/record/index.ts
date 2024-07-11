@@ -1,4 +1,3 @@
-import { UUID } from 'crypto';
 import * as db from '../../db';
 import {
   DbCreateTransactionParams,
@@ -9,7 +8,7 @@ import {
   TransactionSummary,
 } from './types';
 import { groupBy } from './utils';
-import { DbRecord, DbSplit } from '@db/type';
+import { DbRecord, DbSplit, DbTransaction } from '@db/type';
 
 export const createTransactions = (
   paramsList: DbCreateTransactionParams[],
@@ -30,19 +29,19 @@ export const createTransactions = (
 
         const transaction_order = paramsList.length > 1 ? index + 1 : null;
 
-        const record = await query(
+        const record = await query<DbRecord>(
           `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING *;`,
           [channel_id, activity, description, username, transaction_order],
-        );
+        ).then((res) => res.rows[0]);
 
-        const transaction = await query(
+        const transaction = await query<DbTransaction>(
           `INSERT INTO transactions (record_id, username, amount, customized_classification, customized_tag)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING *;`,
-          [record.rows[0].id, username, amount, customized_classification, customized_tag],
-        );
+          [record.id, username, amount, customized_classification, customized_tag],
+        ).then((res) => res.rows[0]);
 
         if (splits && splits?.length > 0) {
           await Promise.all(
@@ -50,13 +49,22 @@ export const createTransactions = (
               query(
                 `INSERT INTO splits (record_id, username, amount)
                 VALUES ($1, $2, $3);`,
-                [record.rows[0].id, split.username, split.amount],
+                [record.id, split.username, split.amount],
               ),
             ),
           );
         }
 
-        return { ...record.rows[0], ...transaction.rows[0] };
+        return {
+          id: record.id,
+          accounting_date: record.accounting_date,
+          activity: record.activity,
+          description: record.description || '',
+          username: transaction.username,
+          amount: transaction.amount,
+          customized_classification: transaction.customized_classification || '',
+          customized_tag: transaction.customized_tag || '',
+        };
       }),
     );
   });
@@ -75,25 +83,31 @@ export const createTransfers = (
 
         const transaction_order = paramsList.length > 1 ? index + 1 : null;
 
-        const record = await query(
+        const record = await query<DbRecord>(
           `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
           VALUES ($1, $2, $3, $4, $5)
           RETURNING *;`,
           [channel_id, activity, description, username, transaction_order],
-        );
+        ).then((res) => res.rows[0]);
 
         const _splits = await Promise.all(
           splits.map((split) =>
-            query(
+            query<DbSplit>(
               `INSERT INTO splits (record_id, username, amount)
               VALUES ($1, $2, $3)
               RETURNING *;`,
-              [record.rows[0].id, split.username, split.amount],
-            ),
+              [record.id, split.username, split.amount],
+            ).then((res) => res.rows[0]),
           ),
         );
 
-        return { ...record.rows[0], splits: _splits.map((split) => split.rows[0]) };
+        return {
+          id: record.id,
+          accounting_date: record.accounting_date,
+          activity: record.activity,
+          description: record.description || '',
+          splits: _splits,
+        };
       }),
     );
   });
@@ -104,10 +118,11 @@ export const deleteLatestRecord = async (
 ): Promise<TransactionSummary | undefined> => {
   const { channel_id, username, activity } = params;
 
-  let res;
+  let record: DbRecord & DbTransaction;
   if (activity) {
-    res = await db.query(
-      `WITH updated_record AS (
+    record = await db
+      .query<DbRecord & DbTransaction>(
+        `WITH updated_record AS (
         UPDATE records
         SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $1
         WHERE id = (
@@ -121,11 +136,13 @@ export const deleteLatestRecord = async (
       )
       SELECT * FROM updated_record
       JOIN transactions ON updated_record.id = transactions.record_id;`,
-      [username, channel_id, activity],
-    );
+        [username, channel_id, activity],
+      )
+      .then((res) => res.rows[0]);
   } else {
-    res = await db.query(
-      `WITH updated_record AS (
+    record = await db
+      .query<DbRecord & DbTransaction>(
+        `WITH updated_record AS (
         UPDATE records
         SET deleted_at = CURRENT_TIMESTAMP, deleted_by = $1
         WHERE id = (
@@ -139,80 +156,101 @@ export const deleteLatestRecord = async (
       )
       SELECT * FROM updated_record
       JOIN transactions ON updated_record.id = transactions.record_id;`,
-      [username, channel_id],
-    );
+        [username, channel_id],
+      )
+      .then((res) => res.rows[0]);
   }
 
-  return res.rows[0];
+  return {
+    id: record.id,
+    accounting_date: record.accounting_date,
+    activity: record.activity,
+    description: record.description || '',
+    username: record.username,
+    amount: record.amount,
+    customized_classification: record.customized_classification || '',
+    customized_tag: record.customized_tag || '',
+  };
 };
 
 export const readRecords = async (params: DbReadRecordParams): Promise<TransactionSummary[]> => {
   const { channel_id, interval } = params;
 
-  let res;
+  let records: (DbRecord & DbTransaction)[];
   if (interval.length > 1) {
-    res = await db.query(
-      `SELECT * FROM records
+    records = await db
+      .query<DbRecord & DbTransaction>(
+        `SELECT * FROM records
       JOIN transactions ON records.id = transactions.record_id
       WHERE channel_id = $1
       AND accounting_date BETWEEN $2 AND $3
       AND deleted_at IS NULL;`,
-      [channel_id, interval[0], interval[1]],
-    );
+        [channel_id, interval[0], interval[1]],
+      )
+      .then((res) => res.rows);
   } else {
-    res = await db.query(
-      `SELECT * FROM records
+    records = await db
+      .query<DbRecord & DbTransaction>(
+        `SELECT * FROM records
       JOIN transactions ON records.id = transactions.record_id
       WHERE channel_id = $1
       AND accounting_date = $2
       AND deleted_at IS NULL`,
-      [channel_id, interval[0]],
-    );
+        [channel_id, interval[0]],
+      )
+      .then((res) => res.rows);
   }
 
-  return res.rows;
+  return records.map((record) => ({
+    id: record.id,
+    accounting_date: record.accounting_date,
+    activity: record.activity,
+    description: record.description || '',
+    username: record.username,
+    amount: record.amount,
+    customized_classification: record.customized_classification || '',
+    customized_tag: record.customized_tag || '',
+  }));
 };
 
 export const readTransfers = async (params: DbReadRecordParams): Promise<TransferSummary[]> => {
   const { channel_id, interval } = params;
 
-  let res;
+  let splitRecords: (DbRecord & DbSplit)[];
   if (interval.length > 1) {
-    res = await db.query(
-      `SELECT * FROM records
+    splitRecords = await db
+      .query<DbRecord & DbSplit>(
+        `SELECT * FROM records
       JOIN splits ON records.id = splits.record_id
       WHERE channel_id = $1
       AND accounting_date BETWEEN $2 AND $3
       AND deleted_at IS NULL;`,
-      [channel_id, interval[0], interval[1]],
-    );
+        [channel_id, interval[0], interval[1]],
+      )
+      .then((res) => res.rows);
   } else {
-    res = await db.query(
-      `SELECT * FROM records
+    splitRecords = await db
+      .query<DbRecord & DbSplit>(
+        `SELECT * FROM records
       JOIN splits ON records.id = splits.record_id
       WHERE channel_id = $1
       AND accounting_date = $2
       AND deleted_at IS NULL`,
-      [channel_id, interval[0]],
-    );
+        [channel_id, interval[0]],
+      )
+      .then((res) => res.rows);
   }
 
-  const allocations = groupBy<DbRecord & DbSplit, UUID>(res.rows, (row) => row.id);
+  const allocations = groupBy(splitRecords, (row) => row.id);
 
   const result: TransferSummary[] = [];
-  for (const [key, arr] of allocations) {
+  for (const [id, records] of allocations) {
     result.push({
-      id: key,
-      channel_id: arr[0].channel_id,
-      accounting_date: arr[0].accounting_date,
-      activity: arr[0].activity,
-      description: arr[0].description,
-      created_at: arr[0].created_at,
-      deleted_at: arr[0].deleted_at,
-      created_by: arr[0].created_by,
-      deleted_by: arr[0].deleted_by,
-      transaction_order: arr[0].transaction_order,
-      splits: arr.map((record) => ({
+      id: id,
+      accounting_date: records[0].accounting_date,
+      activity: records[0].activity,
+      description: records[0].description || '',
+      splits: records.map((record) => ({
         username: record.username,
         amount: record.amount,
       })),

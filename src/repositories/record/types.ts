@@ -3,33 +3,20 @@ import { UUID } from 'crypto';
 
 export interface TransactionSummary {
   id: UUID;
-  channel_id: UUID;
   accounting_date: string; // 2024-05-31
   activity: Activity;
-  description: string | null;
-  created_at: string | null;
-  deleted_at: string | null;
-  created_by: string | null;
-  deleted_by: string | null;
-  transaction_order: number | null;
-  //   record_id: UUID;
+  description: string;
   username: string;
   amount: number;
-  customized_classification: string | null;
-  customized_tag: string | null;
+  customized_classification: string;
+  customized_tag: string;
 }
 
 export interface TransferSummary {
   id: UUID;
-  channel_id: UUID;
   accounting_date: string; // 2024-05-31
   activity: Activity;
-  description: string | null;
-  created_at: string | null;
-  deleted_at: string | null;
-  created_by: string | null;
-  deleted_by: string | null;
-  transaction_order: number | null;
+  description: string;
   splits: Split[];
 }
 
