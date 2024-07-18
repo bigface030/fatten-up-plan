@@ -1,8 +1,9 @@
 import { UUID } from 'crypto';
+import { ACTIVITIES } from './constants';
 
-export type TransactionActivity = 'expenditure' | 'income';
-export type TransferActivity = 'transfer';
-export type Activity = TransactionActivity & TransferActivity;
+export type TransactionActivity = (typeof ACTIVITIES)[0] | (typeof ACTIVITIES)[1];
+export type TransferActivity = (typeof ACTIVITIES)[2];
+export type Activity = TransactionActivity | TransferActivity;
 
 export interface DbRecord {
   id: UUID;
@@ -19,14 +20,14 @@ export interface DbRecord {
 
 export interface DbTransaction {
   record_id: UUID;
-  username: string;
-  amount: number;
+  transaction_username: string;
+  transaction_amount: number;
   customized_classification: string | null;
   customized_tag: string | null;
 }
 
 export interface DbSplit {
   record_id: UUID;
-  username: string;
-  amount: number;
+  split_username: string;
+  split_amount: number;
 }

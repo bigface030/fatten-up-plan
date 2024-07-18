@@ -67,7 +67,7 @@ const recordService = async (
     } else if (type === 'delete') {
       const record = await deleteLatestRecord({ ...params, username, channel_id });
       if (!record) return { status: 'failed', msg: 'no_records' };
-      return { status: 'success', body: { type, result: record } };
+      return { status: 'success', body: { type, result: record as TransactionSummary } };
     } else if (type === 'read') {
       const { action } = msg.body;
       const records = await readRecords({ ...params, username, channel_id });
