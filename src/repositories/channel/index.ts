@@ -1,4 +1,4 @@
-import * as db from '../../db';
+import * as db from '@db';
 import { DbChannel, DbCommonChannelParams } from './types';
 
 export const readChannel = async (params: DbCommonChannelParams): Promise<DbChannel[]> => {

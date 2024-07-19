@@ -1,4 +1,7 @@
-import * as db from '../../db';
+import * as db from '@db';
+import { DbRecord, DbSplit, DbTransaction } from '@db/type';
+import { ACTIVITIES } from '@db/constants';
+
 import {
   DbCreateTransactionParams,
   DbCreateTransferParams,
@@ -8,8 +11,6 @@ import {
   TransactionSummary,
 } from './types';
 import { groupBy } from './utils';
-import { DbRecord, DbSplit, DbTransaction } from '@db/type';
-import { ACTIVITIES } from '@db/constants';
 
 export const createTransactions = (
   paramsList: DbCreateTransactionParams[],
