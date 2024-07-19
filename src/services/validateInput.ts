@@ -5,14 +5,16 @@ import { datesFor, isValidDateString } from './dateUtils';
 import { CustomizedMessage } from './types';
 
 export const validateInput = (args: string[]): CustomizedMessage => {
-  if (!dictionary[args[0]] && !tags[args[0]])
+  const [command, ...params] = args;
+
+  if (!dictionary[command] && !tags[command])
     return {
       status: 'failed',
       msg: 'user_error_invalid_command',
     };
 
-  if (dictionary[args[0]] === COMMANDS.DELETE_LATEST) {
-    if (args.length > 1) {
+  if (dictionary[command] === COMMANDS.DELETE_LATEST) {
+    if (params.length > 0) {
       return {
         status: 'failed',
         msg: 'user_error_invalid_params_length',
@@ -27,9 +29,13 @@ export const validateInput = (args: string[]): CustomizedMessage => {
     };
   }
 
-  if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[args[0]])) {
-    const command = dictionary[args[0]];
-    const params = args.slice(1);
+  if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[command])) {
+    if (params.length < 1 || params.length > 2) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_length',
+      };
+    }
     if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
       if (params.length > 1) {
         return {
@@ -41,17 +47,11 @@ export const validateInput = (args: string[]): CustomizedMessage => {
         status: 'success',
         body: {
           type: 'read',
-          action: ACTIONS[command],
+          action: ACTIONS[dictionary[command]],
           params: {
             interval: datesFor(intervals[params[0]]),
           },
         },
-      };
-    }
-    if (params.length < 1 || params.length > 2) {
-      return {
-        status: 'failed',
-        msg: 'user_error_invalid_params_length',
       };
     }
     if (!params.every(isValidDateString)) {
@@ -64,7 +64,7 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       status: 'success',
       body: {
         type: 'read',
-        action: ACTIONS[command],
+        action: ACTIONS[dictionary[command]],
         params: {
           interval: datesFor(params),
         },
@@ -72,19 +72,19 @@ export const validateInput = (args: string[]): CustomizedMessage => {
     };
   }
 
-  if (!tags[args[0]])
+  if (!tags[command])
     return {
       status: 'failed',
       msg: 'admin_error_invalid_tag',
     };
 
-  const activity = dictionary[tags[args[0]].transaction_type] as TransactionActivity,
-    customized_tag = args[0],
-    customized_classification = tags[args[0]].classification,
-    amount = Math.abs(Number(args[1])),
-    description = args[2];
+  const activity = dictionary[tags[command].transaction_type] as TransactionActivity,
+    customized_tag = command,
+    customized_classification = tags[command].classification,
+    amount = Math.abs(Number(params[0])),
+    description = params[1];
 
-  if (args.length > 3) {
+  if (params.length > 2) {
     return {
       status: 'failed',
       msg: 'user_error_invalid_params_length',
