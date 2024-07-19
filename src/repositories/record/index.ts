@@ -27,15 +27,16 @@ export const createTransactions = (
           customized_classification,
           customized_tag,
           splits,
+          accounting_date,
         } = params;
 
         const transaction_order = paramsList.length > 1 ? index + 1 : null;
 
         const record = await query<DbRecord>(
-          `INSERT INTO records (channel_id, activity, description, created_by, transaction_order)
-            VALUES ($1, $2, $3, $4, $5)
+          `INSERT INTO records (channel_id, activity, description, created_by, transaction_order, accounting_date)
+            VALUES ($1, $2, $3, $4, $5, COALESCE($6, CURRENT_DATE))
             RETURNING *;`,
-          [channel_id, activity, description, username, transaction_order],
+          [channel_id, activity, description, username, transaction_order, accounting_date],
         ).then((res) => res.rows[0]);
 
         const transaction = await query<DbTransaction>(

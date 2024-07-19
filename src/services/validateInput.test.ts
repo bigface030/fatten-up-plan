@@ -1,16 +1,12 @@
 import { dictionary, intervals, tags } from '../utils/fileUtils';
 import { ACTIONS } from './constants';
-import { datesFor } from './dateUtils';
+import { formatDate, formatDefaultDateInterval } from './dateUtils';
 import { validateInput } from './validateInput';
 
 test('input invalid command', () => {
   expect(validateInput(['ABC'])).toEqual({
     status: 'failed',
     msg: 'user_error_invalid_command',
-  });
-  expect(validateInput(['支出', '100'])).toEqual({
-    status: 'failed',
-    msg: 'admin_error_invalid_tag',
   });
 });
 
@@ -39,7 +35,7 @@ test('read balance of the records', () => {
       type: 'read',
       action: ACTIONS[dictionary['查詢']],
       params: {
-        interval: datesFor(intervals['今日']),
+        interval: formatDefaultDateInterval(intervals['今日']),
       },
     },
   });
@@ -69,7 +65,7 @@ test('read balance of the records', () => {
       type: 'read',
       action: ACTIONS[dictionary['查詢']],
       params: {
-        interval: datesFor(['20240531']),
+        interval: [formatDate('20240531')],
       },
     },
   });
@@ -79,7 +75,7 @@ test('read balance of the records', () => {
       type: 'read',
       action: ACTIONS[dictionary['查詢']],
       params: {
-        interval: datesFor(['20240531', '20240601']),
+        interval: ['20240531', '20240601'].map(formatDate),
       },
     },
   });
@@ -89,13 +85,17 @@ test('read balance of the records', () => {
       type: 'read',
       action: ACTIONS[dictionary['查詢']],
       params: {
-        interval: datesFor(['20240601', '20240531']),
+        interval: ['20240601', '20240531'].map(formatDate),
       },
     },
   });
 });
 
 test('create record', () => {
+  expect(validateInput(['早餐'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_length',
+  });
   expect(validateInput(['早餐', '100', '信用卡', 'ABC'])).toEqual({
     status: 'failed',
     msg: 'user_error_invalid_params_length',
@@ -117,19 +117,6 @@ test('create record', () => {
       },
     },
   });
-  expect(validateInput(['早餐', '100', '信用卡'])).toEqual({
-    status: 'success',
-    body: {
-      type: 'create',
-      params: {
-        activity: dictionary[tags['早餐'].transaction_type],
-        customized_tag: '早餐',
-        customized_classification: tags['早餐'].classification,
-        amount: 100,
-        description: '信用卡',
-      },
-    },
-  });
   expect(validateInput(['早餐', '100', '100'])).toEqual({
     status: 'success',
     body: {
@@ -140,6 +127,69 @@ test('create record', () => {
         customized_classification: tags['早餐'].classification,
         amount: 100,
         description: '100',
+      },
+    },
+  });
+});
+
+test('fully creating record', () => {
+  expect(validateInput(['支出'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_length',
+  });
+  expect(validateInput(['支出', '20240531'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_length',
+  });
+  expect(validateInput(['支出', '20240531', '早餐'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_length',
+  });
+  expect(validateInput(['支出', '20240531', '早餐', '100', '信用卡', 'ABC'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_length',
+  });
+  expect(validateInput(['支出', '1130531', '早餐', '100'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_value',
+  });
+  expect(validateInput(['支出', '20240531', '早安', '100'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_value',
+  });
+  expect(validateInput(['支出', '20240531', '薪水', '100'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_value',
+  });
+  expect(validateInput(['支出', '20240531', '早餐', '$100'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_value',
+  });
+  expect(validateInput(['支出', '20240531', '早餐', '100'])).toEqual({
+    status: 'success',
+    body: {
+      type: 'create',
+      params: {
+        activity: dictionary['支出'],
+        customized_tag: '早餐',
+        customized_classification: tags['早餐'].classification,
+        amount: 100,
+        description: undefined,
+        accounting_date: formatDate('20240531'),
+      },
+    },
+  });
+  expect(validateInput(['支出', '20240531', '早餐', '100', '100'])).toEqual({
+    status: 'success',
+    body: {
+      type: 'create',
+      params: {
+        activity: dictionary['支出'],
+        customized_tag: '早餐',
+        customized_classification: tags['早餐'].classification,
+        amount: 100,
+        description: '100',
+        accounting_date: formatDate('20240531'),
       },
     },
   });

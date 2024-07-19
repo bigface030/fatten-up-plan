@@ -32,8 +32,9 @@ interface CreateRecordParams<T> {
 
 export interface CreateTransactionParams extends CreateRecordParams<TransactionActivity> {
   amount: number;
-  customized_tag?: string;
-  customized_classification?: string | null;
+  customized_tag: string;
+  customized_classification: string | null;
+  accounting_date?: string;
   splits?: Split[];
 }
 

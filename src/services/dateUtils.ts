@@ -26,11 +26,14 @@ const datesGenerator: Record<DefaultDateInterval, Dayjs[]> = {
   ],
 };
 
-export const datesFor = (interval: DefaultDateInterval | string[]) => {
-  if (Array.isArray(interval)) {
-    return interval.map((dateString) => dayjs(dateString).format('YYYY-MM-DD'));
-  }
-  return datesGenerator[interval].map((date) => date.format('YYYY-MM-DD'));
+export const formatDate = (date: Dayjs | string): string => {
+  return date instanceof dayjs ? date.format('YYYY-MM-DD') : formatDate(dayjs(date));
 };
 
-export const isValidDateString = (param: string) => dayjs(param, 'YYYYMMDD', true).isValid();
+export const formatDefaultDateInterval = (interval: DefaultDateInterval) => {
+  return datesGenerator[interval].map(formatDate);
+};
+
+export const isValidDateString = (dateString: string) => {
+  return dayjs(dateString, 'YYYYMMDD', true).isValid();
+};

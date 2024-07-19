@@ -1,7 +1,7 @@
 import { TransactionActivity } from '@db/type';
 import { dictionary, intervals, tags } from '../utils/fileUtils';
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
-import { datesFor, isValidDateString } from './dateUtils';
+import { formatDate, formatDefaultDateInterval, isValidDateString } from './dateUtils';
 import { CustomizedMessage } from './types';
 
 export const validateInput = (args: string[]): CustomizedMessage => {
@@ -49,7 +49,7 @@ export const validateInput = (args: string[]): CustomizedMessage => {
           type: 'read',
           action: ACTIONS[dictionary[command]],
           params: {
-            interval: datesFor(intervals[params[0]]),
+            interval: formatDefaultDateInterval(intervals[params[0]]),
           },
         },
       };
@@ -66,7 +66,58 @@ export const validateInput = (args: string[]): CustomizedMessage => {
         type: 'read',
         action: ACTIONS[dictionary[command]],
         params: {
-          interval: datesFor(params),
+          interval: params.map(formatDate),
+        },
+      },
+    };
+  }
+
+  if ([COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[command])) {
+    if (params.length < 3 || params.length > 4) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_length',
+      };
+    }
+    const [dateString] = params;
+    if (!isValidDateString(dateString)) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_value',
+      };
+    }
+    const customized_tag = params[1];
+    if (!tags[customized_tag]) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_value',
+      };
+    }
+    const activity = dictionary[tags[customized_tag].transaction_type] as TransactionActivity;
+    if (activity !== dictionary[command]) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_value',
+      };
+    }
+    const amount = Math.abs(Number(params[2]));
+    if (isNaN(amount)) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_value',
+      };
+    }
+    return {
+      status: 'success',
+      body: {
+        type: 'create',
+        params: {
+          activity,
+          customized_tag,
+          customized_classification: tags[customized_tag].classification,
+          amount,
+          description: params[3],
+          accounting_date: formatDate(dateString),
         },
       },
     };
@@ -78,25 +129,20 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       msg: 'admin_error_invalid_tag',
     };
 
-  const activity = dictionary[tags[command].transaction_type] as TransactionActivity,
-    customized_tag = command,
-    customized_classification = tags[command].classification,
-    amount = Math.abs(Number(params[0])),
-    description = params[1];
-
-  if (params.length > 2) {
+  if (params.length < 1 || params.length > 2)
     return {
       status: 'failed',
       msg: 'user_error_invalid_params_length',
     };
-  }
 
+  const amount = Math.abs(Number(params[0]));
   if (isNaN(amount))
     return {
       status: 'failed',
       msg: 'user_error_invalid_params_value',
     };
 
+  const activity = dictionary[tags[command].transaction_type] as TransactionActivity;
   if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(activity))
     return {
       status: 'failed',
@@ -109,10 +155,10 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       type: 'create',
       params: {
         activity,
-        customized_tag,
-        customized_classification,
+        customized_tag: command,
+        customized_classification: tags[command].classification,
         amount,
-        description,
+        description: params[1],
       },
     },
   };
