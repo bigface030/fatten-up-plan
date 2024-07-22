@@ -14,17 +14,31 @@ export const validateInput = (args: string[]): CustomizedMessage => {
     };
 
   if (dictionary[command] === COMMANDS.DELETE_LATEST) {
-    if (params.length > 0) {
+    if (params.length > 1) {
       return {
         status: 'failed',
         msg: 'user_error_invalid_params_length',
       };
     }
+
+    const activityInput: string | undefined = params[0];
+    if (
+      activityInput &&
+      ![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput])
+    ) {
+      return {
+        status: 'failed',
+        msg: 'user_error_invalid_params_value',
+      };
+    }
+
     return {
       status: 'success',
       body: {
         type: 'delete',
-        params: {},
+        params: {
+          activity: dictionary[activityInput] as TransactionActivity | undefined,
+        },
       },
     };
   }

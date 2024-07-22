@@ -11,9 +11,22 @@ test('input invalid command', () => {
 });
 
 test('delete the latest record', () => {
-  expect(validateInput(['刪除上一筆', 'ABC'])).toEqual({
+  expect(validateInput(['刪除上一筆', '支出', 'ABC'])).toEqual({
     status: 'failed',
     msg: 'user_error_invalid_params_length',
+  });
+  expect(validateInput(['刪除上一筆', '消費'])).toEqual({
+    status: 'failed',
+    msg: 'user_error_invalid_params_value',
+  });
+  expect(validateInput(['刪除上一筆', '支出'])).toEqual({
+    status: 'success',
+    body: {
+      type: 'delete',
+      params: {
+        activity: dictionary['支出'],
+      },
+    },
   });
   expect(validateInput(['刪除上一筆'])).toEqual({
     status: 'success',
