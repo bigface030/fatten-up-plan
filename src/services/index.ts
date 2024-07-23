@@ -66,14 +66,14 @@ const recordService = async (
       return { status: 'success', body: { type, result: records } };
     } else if (type === 'delete') {
       const record = await deleteLatestRecord({ ...params, username, channel_id });
-      if (!record) return { status: 'failed', msg: 'no_records' };
-      return { status: 'success', body: { type, result: record as TransactionSummary } };
+      return {
+        status: 'success',
+        body: { type, result: record as TransactionSummary | undefined },
+      };
     } else if (type === 'read') {
       const { action } = msg.body;
       const records = await readRecords({ ...params, username, channel_id });
-      if (records.length === 0) {
-        return { status: 'failed', msg: 'no_records' };
-      } else if (action === 'read_balance') {
+      if (action === 'read_balance') {
         return {
           status: 'success',
           body: { type, action, result: { ...operateReadBalance(records), params } },

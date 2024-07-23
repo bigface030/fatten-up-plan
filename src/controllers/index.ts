@@ -48,6 +48,7 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
   if (type === 'create') {
     return displayRecords(res.body.result, localization['create_success']);
   } else if (type === 'delete') {
+    if (!res.body.result) return localization['no_records'];
     return displayRecords([res.body.result], localization['delete_success']);
   } else if (type === 'read') {
     const { action, result } = res.body;
@@ -130,6 +131,8 @@ const displayBalance = (result: ReadBalanceResultWithParams) => {
   const { expenditure, income, total, params } = result;
   const { interval } = params;
 
+  if (expenditure === 0 && income === 0) return localization['no_records'];
+
   const arr: string[] = [];
 
   const title = [
@@ -150,6 +153,8 @@ const displayBalance = (result: ReadBalanceResultWithParams) => {
 
 const displayStatement = (result: ReadStatementResult) => {
   const arr: string[] = [];
+
+  if (Object.keys(result).length === 0) return localization['no_records'];
 
   for (const [accounting_date, recordArr] of Object.entries(result)) {
     arr.push(accounting_date);

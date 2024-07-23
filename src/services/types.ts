@@ -65,7 +65,7 @@ interface CreateRecordResponse {
 
 interface DeleteRecordResponse {
   type: 'delete';
-  result: TransactionSummary;
+  result?: TransactionSummary;
 }
 
 interface ReadBalanceResponse {
