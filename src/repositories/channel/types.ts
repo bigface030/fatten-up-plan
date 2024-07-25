@@ -11,5 +11,11 @@ export interface DbChannel {
 }
 
 export interface DbCommonChannelParams {
+  channel_name: string;
+}
+
+export interface DbReadChannelParams extends DbCommonChannelParams {}
+
+export interface DbCreateChannelParams extends DbCommonChannelParams {
   username: string;
 }

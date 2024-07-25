@@ -31,7 +31,7 @@ function isCreateTransactionBody(body: SuccessfulRequestBody): body is CreateTra
 const recordService = async (
   request: CustomizedMessageRequest,
 ): Promise<CustomizedMessageResponse> => {
-  const { tokenGroups, username } = request;
+  const { tokenGroups, username, channelName } = request;
 
   if (tokenGroups.length > 5) {
     return { status: 'failed', msg: 'user_error_invalid_multi_line_length' };
@@ -55,7 +55,7 @@ const recordService = async (
   try {
     const { type, params } = msg.body;
 
-    const channel_id = await getChannelId(username);
+    const channel_id = await getChannelId(channelName, username);
 
     if (type === 'create') {
       const createTransactionParams = successMsgs
@@ -94,10 +94,10 @@ const recordService = async (
   }
 };
 
-const getChannelId = async (username: string): Promise<UUID> => {
-  let [channel] = await readChannel({ username });
+const getChannelId = async (channel_name: string, username: string): Promise<UUID> => {
+  let channel = await readChannel({ channel_name });
   if (!channel) {
-    channel = await createChannel({ username });
+    channel = await createChannel({ channel_name, username });
   }
   return channel.id;
 };

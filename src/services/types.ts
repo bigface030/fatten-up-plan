@@ -44,6 +44,7 @@ export type CustomizedMessage = SuccessfulRequest | FailedRequest;
 export interface CustomizedMessageRequest {
   tokenGroups: string[][];
   username: string;
+  channelName: string;
 }
 
 export interface ReadBalanceResult {

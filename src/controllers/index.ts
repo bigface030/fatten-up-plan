@@ -10,13 +10,17 @@ import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/ty
 const messageEventController = (event: line.MessageEvent) => {
   const msg = event.message as line.TextEventMessage;
   if (event.source.type === 'user') {
-    return messageHandler({ text: msg.text, username: event.source.userId });
+    return messageHandler({
+      text: msg.text,
+      username: event.source.userId,
+      channelName: event.source.userId,
+    });
   }
   return 'invalid message event';
 };
 
 export const messageHandler = async (source: MessageHandlerSource): Promise<string> => {
-  const { text, username } = source;
+  const { text, username, channelName } = source;
 
   const textInput = text.trim();
 
@@ -38,7 +42,7 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
     .split('\n')
     .map((input) => input.trim().replace(/\s+/g, ' ').split(' '));
 
-  const res = await recordService({ tokenGroups, username });
+  const res = await recordService({ tokenGroups, username, channelName });
 
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;

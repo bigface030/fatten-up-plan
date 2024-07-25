@@ -6,4 +6,5 @@ export interface TagConfig {
 export interface MessageHandlerSource {
   text: string;
   username: string;
+  channelName: string;
 }
