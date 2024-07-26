@@ -3,7 +3,7 @@ import * as line from '@line/bot-sdk';
 import { SYSTEM_COMMANDS } from './constants';
 import { MessageHandlerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
-import recordService from '../services';
+import recordHandler from '../services';
 import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 
@@ -12,15 +12,14 @@ const messageEventController = (event: line.MessageEvent) => {
   if (event.source.type === 'user') {
     return messageHandler({
       text: msg.text,
-      username: event.source.userId,
-      channelName: event.source.userId,
+      userId: event.source.userId,
     });
   }
   return 'invalid message event';
 };
 
 export const messageHandler = async (source: MessageHandlerSource): Promise<string> => {
-  const { text, username, channelName } = source;
+  const { text, userId } = source;
 
   const textInput = text.trim();
 
@@ -42,7 +41,7 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
     .split('\n')
     .map((input) => input.trim().replace(/\s+/g, ' ').split(' '));
 
-  const res = await recordService({ tokenGroups, username, channelName });
+  const res = await recordHandler({ tokenGroups, userId });
 
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;

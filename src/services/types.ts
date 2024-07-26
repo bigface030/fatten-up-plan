@@ -11,14 +11,14 @@ export interface CreateTransactionPayload {
   params: CreateTransactionParams;
 }
 
-interface DeleteRecordPayload {
+export interface DeleteRecordPayload {
   type: 'delete';
   params: DeleteRecordParams;
 }
 
 export type Action = 'read_balance' | 'read_statement';
 
-interface ReadRecordPayload<T> {
+export interface ReadRecordPayload<T> {
   type: 'read';
   action: T;
   params: ReadRecordParams;
@@ -31,8 +31,8 @@ export type CustomizedMessage =
 
 export interface CustomizedMessageRequest {
   tokenGroups: string[][];
-  username: string;
-  channelName: string;
+  userId: string;
+  groupId?: string;
 }
 
 export interface ReadBalanceResult {

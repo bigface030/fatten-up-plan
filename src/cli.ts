@@ -5,7 +5,10 @@ import * as db from './db';
 import { messageHandler } from './controllers';
 
 const handleInput = (input: string) => {
-  return messageHandler({ text: input, username: process.env.DB_ADMIN_USERNAME as string });
+  return messageHandler({
+    text: input,
+    userId: process.env.DB_ADMIN_USERNAME as string,
+  });
 };
 
 function prompt() {
