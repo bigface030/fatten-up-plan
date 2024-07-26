@@ -24,22 +24,10 @@ interface ReadRecordPayload<T> {
   params: ReadRecordParams;
 }
 
-export type SuccessfulRequestBody =
+export type CustomizedMessage =
   | CreateTransactionPayload
   | DeleteRecordPayload
   | ReadRecordPayload<Action>;
-
-export type SuccessfulRequest = {
-  status: 'success';
-  body: SuccessfulRequestBody;
-};
-
-export interface FailedRequest {
-  status: 'failed';
-  msg: string;
-}
-
-export type CustomizedMessage = SuccessfulRequest | FailedRequest;
 
 export interface CustomizedMessageRequest {
   tokenGroups: string[][];
@@ -86,7 +74,10 @@ type SuccessfulResponse = {
   body: CreateRecordResponse | DeleteRecordResponse | ReadBalanceResponse | ReadStatementResponse;
 };
 
-type FailedResponse = FailedRequest;
+type FailedResponse = {
+  status: 'failed';
+  msg: string;
+};
 
 export type CustomizedMessageResponse = SuccessfulResponse | FailedResponse;
 

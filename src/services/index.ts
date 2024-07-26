@@ -3,63 +3,41 @@ import {
   CustomizedMessage,
   CustomizedMessageRequest,
   CustomizedMessageResponse,
-  FailedRequest,
   ReadBalanceResult,
   ReadStatementResult,
-  SuccessfulRequest,
-  SuccessfulRequestBody,
 } from './types';
 import { add } from './decimalUtils';
 import { createTransactions, deleteLatestRecord, readRecords } from '../repositories/record';
 import { validateInput } from './validateInput';
 import { TransactionSummary } from '@repositories/record/types';
 import { getChannelId } from './channelService';
+import { CustomizedError } from '@utils/exceptions';
 
-function isSuccessMsg(msg: CustomizedMessage): msg is SuccessfulRequest {
-  return msg.status === 'success';
-}
-
-function isFailedMsg(msg: CustomizedMessage): msg is FailedRequest {
-  return msg.status === 'failed';
-}
-
-function isCreateTransactionBody(body: SuccessfulRequestBody): body is CreateTransactionPayload {
-  return body.type === 'create';
-}
+const MAXIMUM_TOKEN_GROUP_LENGTH = 5;
 
 const recordService = async (
   request: CustomizedMessageRequest,
 ): Promise<CustomizedMessageResponse> => {
-  const { tokenGroups, username, channelName } = request;
-
-  if (tokenGroups.length > 5) {
-    return { status: 'failed', msg: 'user_error_invalid_multi_line_length' };
-  }
-
-  const messages = tokenGroups.map(validateInput);
-
-  const successMsgs = messages.filter(isSuccessMsg);
-  const failedMsgs = messages.filter(isFailedMsg);
-
-  if (failedMsgs.length > 0) {
-    return failedMsgs[0];
-  }
-
-  if (successMsgs.length > 1 && !successMsgs.every((msg) => msg.body.type === 'create')) {
-    return { status: 'failed', msg: 'user_error_invalid_multi_line_type' };
-  }
-
-  const [msg] = successMsgs;
-
   try {
-    const { type, params } = msg.body;
+    const { tokenGroups, username, channelName } = request;
+
+    if (tokenGroups.length > MAXIMUM_TOKEN_GROUP_LENGTH)
+      throw new CustomizedError('user_error_invalid_multi_line_length');
+
+    const messages = tokenGroups.map(validateInput);
+
+    if (messages.length > 1 && !messages.every(isCreateMsg))
+      throw new CustomizedError('user_error_invalid_multi_line_type');
+
+    const [msg] = messages;
+
+    const { type, params } = msg;
 
     const channel_id = await getChannelId(channelName, username);
 
     if (type === 'create') {
-      const createTransactionParams = successMsgs
-        .map((msg) => msg.body)
-        .filter(isCreateTransactionBody)
+      const createTransactionParams = messages
+        .filter(isCreateMsg)
         .map((body) => ({ ...body.params, username, channel_id }));
       const records = await createTransactions(createTransactionParams);
       return { status: 'success', body: { type, result: records } };
@@ -70,7 +48,7 @@ const recordService = async (
         body: { type, result: record as TransactionSummary | undefined },
       };
     } else if (type === 'read') {
-      const { action } = msg.body;
+      const { action } = msg;
       const records = await readRecords({ ...params, username, channel_id });
       if (action === 'read_balance') {
         return {
@@ -83,14 +61,22 @@ const recordService = async (
           body: { type, action, result: operateReadStatement(records) },
         };
       }
-      return { status: 'failed', msg: 'admin_error_invalid_record_action' };
+      throw new CustomizedError('admin_error_invalid_record_action');
     }
 
-    return { status: 'failed', msg: 'admin_error_invalid_record_type' };
+    throw new CustomizedError('admin_error_invalid_record_type');
   } catch (e) {
-    console.error(e);
-    return { status: 'failed', msg: 'db_error_sql_query_execution_failed' };
+    if (e instanceof CustomizedError) {
+      return { status: 'failed', msg: e.message };
+    } else {
+      console.error(e);
+      return { status: 'failed', msg: 'db_error_sql_query_execution_failed' };
+    }
   }
+};
+
+const isCreateMsg = (msg: CustomizedMessage): msg is CreateTransactionPayload => {
+  return msg.type === 'create';
 };
 
 const operateReadBalance = (records: TransactionSummary[]): ReadBalanceResult => {
