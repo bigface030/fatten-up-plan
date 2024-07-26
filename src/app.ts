@@ -5,17 +5,10 @@ import * as line from '@line/bot-sdk';
 import { version as appVersion } from '../package.json';
 import { checkDbVersion } from './db';
 import messageEventController from './controllers';
+import MessageApiClient from '@utils/messageApiClient';
 
 const app = express();
 const port = process.env.PORT || 3000;
-
-const config = {
-  channelSecret: process.env.CHANNEL_SECRET as string,
-};
-
-const client = new line.messagingApi.MessagingApiClient({
-  channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN as string,
-});
 
 app.get('/', (req, res) => {
   res.sendStatus(200);
@@ -31,7 +24,7 @@ app.get('/version', async (req, res) => {
   }
 });
 
-app.use(line.middleware(config));
+app.use(line.middleware({ channelSecret: process.env.CHANNEL_SECRET as string }));
 
 app.post('/webhook', (req: Request, res: Response) => {
   res.sendStatus(200);
@@ -59,7 +52,7 @@ const handleEvent = async (event: line.WebhookEvent) => {
   const text = await messageEventController(event);
   const echo = { type: 'text' as const, text };
 
-  return client.replyMessage({
+  return MessageApiClient.replyMessage({
     replyToken: event.replyToken,
     messages: [echo],
   });

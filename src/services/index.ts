@@ -11,10 +11,9 @@ import {
 } from './types';
 import { add } from './decimalUtils';
 import { createTransactions, deleteLatestRecord, readRecords } from '../repositories/record';
-import { createChannel, readChannel } from '../repositories/channel';
-import { UUID } from 'crypto';
 import { validateInput } from './validateInput';
 import { TransactionSummary } from '@repositories/record/types';
+import { getChannelId } from './channelService';
 
 function isSuccessMsg(msg: CustomizedMessage): msg is SuccessfulRequest {
   return msg.status === 'success';
@@ -92,14 +91,6 @@ const recordService = async (
     console.error(e);
     return { status: 'failed', msg: 'db_error_sql_query_execution_failed' };
   }
-};
-
-const getChannelId = async (channel_name: string, username: string): Promise<UUID> => {
-  let channel = await readChannel({ channel_name });
-  if (!channel) {
-    channel = await createChannel({ channel_name, username });
-  }
-  return channel.id;
 };
 
 const operateReadBalance = (records: TransactionSummary[]): ReadBalanceResult => {
