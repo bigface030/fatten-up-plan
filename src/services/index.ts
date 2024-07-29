@@ -48,7 +48,10 @@ const handleRecordRequest = async (request: CustomizedMessageRequest) => {
   const messages = convertTokensToMessages(tokenGroups);
 
   const CS = new ChannelService({ userId });
-  const channelId = await CS.getChannelId();
+  let channelId = await CS.getChannelId();
+  if (!channelId) {
+    channelId = await CS.createChannel();
+  }
 
   const RS = new RecordService({ userId, channelId });
   return processRecordCRUD(messages, RS);
@@ -57,8 +60,9 @@ const handleRecordRequest = async (request: CustomizedMessageRequest) => {
 export const handleGroupRecordRequest = async (request: CustomizedGroupMessageRequest) => {
   const { tokenGroups, userId, groupId } = request;
 
-  const CS = new GroupChannelService({ groupId });
+  const CS = new GroupChannelService({ groupId, userId });
   const channelId = await CS.getChannelId();
+  if (!channelId) throw new CustomizedError('*user_error_no_channel');
   const memberIds = await CS.getGroupMemberIds(channelId);
 
   const messages = convertTokensToMessages(tokenGroups);

@@ -17,12 +17,25 @@ export const readChannel = async (params: DbReadChannelParams): Promise<DbChanne
 };
 
 export const createChannel = async (params: DbCreateChannelParams): Promise<DbChannel> => {
-  const channel = await db.query<DbChannel>(
-    `INSERT INTO channels (name, created_by) VALUES ($1, $2) RETURNING *;`,
-    [params.channel_name, params.username],
-  );
+  return db.transact(async (query) => {
+    const { channel_name, username, members } = params;
 
-  return channel.rows[0];
+    const channel = await query<DbChannel>(
+      `INSERT INTO channels (name, created_by) VALUES ($1, $2) RETURNING *;`,
+      [channel_name, username],
+    ).then((res) => res.rows[0]);
+
+    const users = members || [username];
+    const insertMembers = users.map((name) =>
+      query<DbChannelMember>(
+        `INSERT INTO channel_members (channel_id, username) VALUES ($1, $2);`,
+        [channel.id, name],
+      ),
+    );
+    await Promise.all(insertMembers);
+
+    return channel;
+  });
 };
 
 export const getChannelMembers = async (params: DbGetChannelMembersParams): Promise<string[]> => {

@@ -18,6 +18,7 @@ export interface DbReadChannelParams extends DbCommonChannelParams {}
 
 export interface DbCreateChannelParams extends DbCommonChannelParams {
   username: string;
+  members?: string[];
 }
 
 export interface DbChannelMember {
