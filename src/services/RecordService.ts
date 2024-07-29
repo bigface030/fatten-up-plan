@@ -1,20 +1,24 @@
 import { UUID } from 'crypto';
 
-import {
-  Action,
-  CreateTransactionPayload,
-  CustomizedMessageResponse,
-  DeleteRecordPayload,
-  ReadRecordPayload,
-} from './types';
+import { Action, CreateRecordResponse, DeleteRecordResponse, ReadRecordResponse } from './types';
 import { operateReadBalance, operateReadStatement } from './operateUtils';
+import { divide } from './decimalUtils';
 
 import { createTransactions, deleteLatestRecord, readRecords } from '@repositories/record';
-import { TransactionSummary } from '@repositories/record/types';
+import {
+  CreateTransactionParams,
+  DeleteRecordParams,
+  ReadRecordParams,
+  TransactionSummary,
+} from '@repositories/record/types';
 
 interface RecordServiceParams {
   userId: string;
   channelId: UUID;
+}
+
+interface GroupRecordServiceParams extends RecordServiceParams {
+  memberIds: string[];
 }
 
 export class RecordService {
@@ -27,52 +31,66 @@ export class RecordService {
     this.channelId = channelId;
   }
 
-  public createRecords = async (
-    messages: CreateTransactionPayload[],
-  ): Promise<CustomizedMessageResponse> => {
-    const createTransactionParams = messages.map((body) => ({
-      ...body.params,
+  public async createRecords(paramsList: CreateTransactionParams[]): Promise<CreateRecordResponse> {
+    const createTransactionParamsList = paramsList.map((params) => ({
+      ...params,
       username: this.userId,
       channel_id: this.channelId,
     }));
-    const records = await createTransactions(createTransactionParams);
-    return { status: 'success', body: { type: 'create', result: records } };
-  };
+    const records = await createTransactions(createTransactionParamsList);
+    return { type: 'create', result: records };
+  }
 
-  public deleteRecord = async (
-    message: DeleteRecordPayload,
-  ): Promise<CustomizedMessageResponse> => {
-    const { type, params } = message;
-    const record = await deleteLatestRecord({
+  public async deleteRecord(params: DeleteRecordParams): Promise<DeleteRecordResponse> {
+    const deleteLatestRecordParams = {
       ...params,
       username: this.userId,
       channel_id: this.channelId,
-    });
-    return {
-      status: 'success',
-      body: { type, result: record as TransactionSummary | undefined },
     };
-  };
+    const record = await deleteLatestRecord(deleteLatestRecordParams);
+    return { type: 'delete', result: record as TransactionSummary | undefined };
+  }
 
-  public readRecords = async (
-    message: ReadRecordPayload<Action>,
-  ): Promise<CustomizedMessageResponse> => {
-    const { type, params, action } = message;
-    const records = await readRecords({
+  public async readRecords(params: ReadRecordParams, action: Action): Promise<ReadRecordResponse> {
+    const readRecordsParams = {
       ...params,
       username: this.userId,
       channel_id: this.channelId,
-    });
-    const response: Record<Action, CustomizedMessageResponse> = {
+    };
+    const records = await readRecords(readRecordsParams);
+    const response: Record<Action, ReadRecordResponse> = {
       read_balance: {
-        status: 'success',
-        body: { type, action: 'read_balance', result: { ...operateReadBalance(records), params } },
+        type: 'read',
+        action: 'read_balance',
+        result: { ...operateReadBalance(records), params },
       },
       read_statement: {
-        status: 'success',
-        body: { type, action: 'read_statement', result: operateReadStatement(records) },
+        type: 'read',
+        action: 'read_statement',
+        result: operateReadStatement(records),
       },
     };
     return response[action];
-  };
+  }
+}
+
+export class GroupRecordService extends RecordService {
+  protected memberIds;
+
+  constructor(params: GroupRecordServiceParams) {
+    super(params);
+    const { memberIds } = params;
+    this.memberIds = memberIds;
+  }
+
+  public createRecords(paramsList: CreateTransactionParams[]): Promise<CreateRecordResponse> {
+    const _paramsList = paramsList.map((params) => ({
+      ...params,
+      splits: this.memberIds.map((userId) => ({
+        username: userId,
+        amount: divide(params.amount, this.memberIds.length),
+      })),
+    }));
+    return super.createRecords(_paramsList);
+  }
 }

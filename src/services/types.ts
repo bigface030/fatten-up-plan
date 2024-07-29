@@ -11,14 +11,14 @@ export interface CreateTransactionPayload {
   params: CreateTransactionParams;
 }
 
-export interface DeleteRecordPayload {
+interface DeleteRecordPayload {
   type: 'delete';
   params: DeleteRecordParams;
 }
 
 export type Action = 'read_balance' | 'read_statement';
 
-export interface ReadRecordPayload<T> {
+interface ReadRecordPayload<T> {
   type: 'read';
   action: T;
   params: ReadRecordParams;
@@ -32,7 +32,10 @@ export type CustomizedMessage =
 export interface CustomizedMessageRequest {
   tokenGroups: string[][];
   userId: string;
-  groupId?: string;
+}
+
+export interface CustomizedGroupMessageRequest extends CustomizedMessageRequest {
+  groupId: string;
 }
 
 export interface ReadBalanceResult {
@@ -47,12 +50,12 @@ export interface ReadBalanceResultWithParams extends ReadBalanceResult {
 
 export type ReadStatementResult = Record<string, TransactionSummary[]>;
 
-interface CreateRecordResponse {
+export interface CreateRecordResponse {
   type: 'create';
   result: TransactionSummary[];
 }
 
-interface DeleteRecordResponse {
+export interface DeleteRecordResponse {
   type: 'delete';
   result?: TransactionSummary;
 }
@@ -69,9 +72,16 @@ interface ReadStatementResponse {
   result: ReadStatementResult;
 }
 
+export type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse;
+
+export type SuccessfulResponseBody =
+  | CreateRecordResponse
+  | DeleteRecordResponse
+  | ReadRecordResponse;
+
 type SuccessfulResponse = {
   status: 'success';
-  body: CreateRecordResponse | DeleteRecordResponse | ReadBalanceResponse | ReadStatementResponse;
+  body: SuccessfulResponseBody;
 };
 
 type FailedResponse = {
@@ -82,3 +92,7 @@ type FailedResponse = {
 export type CustomizedMessageResponse = SuccessfulResponse | FailedResponse;
 
 export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];
+
+export const isCreateMsg = (msg: CustomizedMessage): msg is CreateTransactionPayload => {
+  return msg.type === 'create';
+};

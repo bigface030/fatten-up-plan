@@ -8,6 +8,10 @@ interface ChannelServiceParams {
   userId: string;
 }
 
+interface GroupChannelServiceParams {
+  groupId: string;
+}
+
 export class ChannelService {
   protected userId;
 
@@ -16,7 +20,6 @@ export class ChannelService {
     this.userId = userId;
   }
 
-  // only for single mode
   public getChannelId = async (): Promise<UUID> => {
     let channel = await readChannel({ channel_name: this.userId });
     if (!channel) {
@@ -26,29 +29,37 @@ export class ChannelService {
   };
 }
 
-// only for multiple mode
-export const getChannelIdFrom = async (groupId: string): Promise<UUID> => {
-  const channel = await readChannel({ channel_name: groupId });
-  if (!channel?.id) throw new CustomizedError('*user_error_no_channel');
-  return channel.id;
-};
+export class GroupChannelService {
+  protected groupId;
 
-export const getGroupMemberIds = async (groupId: string, channelId: UUID) => {
-  const [groupMembers, channelMembers] = await Promise.all([
-    MessageApiClient.getGroupMemberCount(groupId),
-    getChannelMembers({ channel_id: channelId }),
-  ]);
+  constructor(params: GroupChannelServiceParams) {
+    const { groupId } = params;
+    this.groupId = groupId;
+  }
 
-  if (groupMembers.count !== channelMembers.length)
-    throw new ArrayLengthError('incorrect channel member count in db', { array: channelMembers });
+  public getChannelId = async (): Promise<UUID> => {
+    const channel = await readChannel({ channel_name: this.groupId });
+    if (!channel?.id) throw new CustomizedError('*user_error_no_channel');
+    return channel.id;
+  };
 
-  /**
-   * @throws {line.JSONParseError}
-   */
-  const validateIfChannelMemberInGroup = (userId: string) =>
-    MessageApiClient.getGroupMemberProfile(groupId, userId);
+  public getGroupMemberIds = async (channelId: UUID) => {
+    const [groupMembers, channelMembers] = await Promise.all([
+      MessageApiClient.getGroupMemberCount(this.groupId),
+      getChannelMembers({ channel_id: channelId }),
+    ]);
 
-  await Promise.all(channelMembers.map(validateIfChannelMemberInGroup));
+    if (groupMembers.count !== channelMembers.length)
+      throw new ArrayLengthError('incorrect channel member count in db', { array: channelMembers });
 
-  return channelMembers;
-};
+    /**
+     * @throws {line.JSONParseError}
+     */
+    const validateIfUserInGroup = (userId: string) =>
+      MessageApiClient.getGroupMemberProfile(this.groupId, userId);
+
+    await Promise.all(channelMembers.map(validateIfUserInGroup));
+
+    return channelMembers;
+  };
+}
