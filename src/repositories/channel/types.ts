@@ -1,13 +1,9 @@
 import { UUID } from 'crypto';
 
-export interface DbChannel {
+export interface ChannelSummary {
   id: UUID;
   name: string;
   metadata: string | null;
-  created_at: string | null;
-  deleted_at: string | null;
-  created_by: string | null;
-  deleted_by: string | null;
 }
 
 export interface DbCommonChannelParams {
@@ -19,11 +15,6 @@ export interface DbReadChannelParams extends DbCommonChannelParams {}
 export interface DbCreateChannelParams extends DbCommonChannelParams {
   username: string;
   members?: string[];
-}
-
-export interface DbChannelMember {
-  channel_id: UUID;
-  username: string;
 }
 
 export interface DbGetChannelMembersParams {

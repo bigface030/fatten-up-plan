@@ -1,22 +1,32 @@
 import * as db from '@db';
+import { DbChannel, DbChannelMember } from '@db/type';
+
 import {
-  DbChannel,
   DbCreateChannelParams,
   DbGetChannelMembersParams,
-  DbChannelMember,
   DbReadChannelParams,
+  ChannelSummary,
 } from './types';
 
-export const readChannel = async (params: DbReadChannelParams): Promise<DbChannel | undefined> => {
-  const channel = await db.query<DbChannel>(
-    `SELECT id FROM channels WHERE name = $1 AND deleted_at IS NULL;`,
-    [params.channel_name],
-  );
+export const readChannel = async (
+  params: DbReadChannelParams,
+): Promise<ChannelSummary | undefined> => {
+  const channel = await db
+    .query<DbChannel>(`SELECT id FROM channels WHERE name = $1 AND deleted_at IS NULL;`, [
+      params.channel_name,
+    ])
+    .then((res) => res.rows[0]);
 
-  return channel.rows[0];
+  if (!channel) return undefined;
+
+  return {
+    id: channel.id,
+    name: channel.name,
+    metadata: channel.metadata,
+  };
 };
 
-export const createChannel = async (params: DbCreateChannelParams): Promise<DbChannel> => {
+export const createChannel = async (params: DbCreateChannelParams): Promise<ChannelSummary> => {
   return db.transact(async (query) => {
     const { channel_name, username, members } = params;
 
@@ -34,7 +44,11 @@ export const createChannel = async (params: DbCreateChannelParams): Promise<DbCh
     );
     await Promise.all(insertMembers);
 
-    return channel;
+    return {
+      id: channel.id,
+      name: channel.name,
+      metadata: channel.metadata,
+    };
   });
 };
 
