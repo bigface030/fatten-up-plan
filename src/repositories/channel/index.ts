@@ -6,6 +6,8 @@ import {
   DbGetChannelMembersParams,
   DbReadChannelParams,
   ChannelSummary,
+  DbAddChannelMembersParams,
+  DbRemoveChannelMembersParams,
 } from './types';
 
 export const readChannel = async (
@@ -59,4 +61,38 @@ export const getChannelMembers = async (params: DbGetChannelMembersParams): Prom
   );
 
   return members.rows.map((res) => res.username);
+};
+
+export const addChannelMembers = async (params: DbAddChannelMembersParams): Promise<string[]> => {
+  const { channel_id, members } = params;
+
+  const addMembers = members.map((username) =>
+    db
+      .query<DbChannelMember>(
+        `INSERT INTO channel_members (channel_id, username) VALUES ($1, $2) RETURNING *;`,
+        [channel_id, username],
+      )
+      .then((res) => res.rows[0]),
+  );
+  const result = await Promise.all(addMembers);
+
+  return result.map((res) => res.username);
+};
+
+export const removeChannelMembers = async (
+  params: DbRemoveChannelMembersParams,
+): Promise<(string | undefined)[]> => {
+  const { channel_id, members } = params;
+
+  const removeMembers = members.map((username) =>
+    db
+      .query<DbChannelMember>(
+        `DELETE FROM channel_members WHERE channel_id = $1 AND username = $2 RETURNING *;`,
+        [channel_id, username],
+      )
+      .then((res) => res.rows[0]),
+  );
+  const result = await Promise.all(removeMembers);
+
+  return result.map((res) => res?.username);
 };

@@ -20,3 +20,13 @@ export interface DbCreateChannelParams extends DbCommonChannelParams {
 export interface DbGetChannelMembersParams {
   channel_id: UUID;
 }
+
+export interface DbAddChannelMembersParams {
+  channel_id: UUID;
+  members: string[];
+}
+
+export interface DbRemoveChannelMembersParams {
+  channel_id: UUID;
+  members: string[];
+}

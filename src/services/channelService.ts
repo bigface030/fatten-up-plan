@@ -1,6 +1,12 @@
 import { UUID } from 'crypto';
 
-import { createChannel, getChannelMembers, readChannel } from '@repositories/channel';
+import {
+  addChannelMembers,
+  createChannel,
+  getChannelMembers,
+  readChannel,
+  removeChannelMembers,
+} from '@repositories/channel';
 import { ArrayLengthError } from '@utils/exceptions';
 import MessageApiClient from '@utils/messageApiClient';
 
@@ -76,5 +82,21 @@ export class GroupChannelService {
       MessageApiClient.getGroupMemberProfile(this.groupId, userId);
 
     await Promise.all(memberIds.map(validateIfUserInGroup));
+  }
+
+  public async addChannelMembers(memberIds: string[]): Promise<string[]> {
+    const channelId = (await this.getChannelId()) as UUID;
+    return addChannelMembers({
+      channel_id: channelId,
+      members: memberIds,
+    });
+  }
+
+  public async removeChannelMembers(memberIds: string[]): Promise<(string | undefined)[]> {
+    const channelId = (await this.getChannelId()) as UUID;
+    return removeChannelMembers({
+      channel_id: channelId,
+      members: memberIds,
+    });
   }
 }
