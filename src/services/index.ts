@@ -1,4 +1,6 @@
 import {
+  ChannelResponse,
+  CustomizedChannelRequest,
   CustomizedGroupMessageRequest,
   CustomizedMessage,
   CustomizedMessageRequest,
@@ -48,12 +50,12 @@ const handleRecordRequest = async (request: CustomizedMessageRequest) => {
   const messages = convertTokensToMessages(tokenGroups);
 
   const CS = new ChannelService({ userId });
-  let channelId = await CS.getChannelId();
-  if (!channelId) {
-    channelId = await CS.createChannel();
+  let channel = await CS.readChannel();
+  if (!channel) {
+    channel = await CS.createChannel();
   }
 
-  const RS = new RecordService({ userId, channelId });
+  const RS = new RecordService({ userId, channelId: channel.id });
   return processRecordCRUD(messages, RS);
 };
 
@@ -61,14 +63,39 @@ export const handleGroupRecordRequest = async (request: CustomizedGroupMessageRe
   const { tokenGroups, userId, groupId } = request;
 
   const CS = new GroupChannelService({ groupId, userId });
-  const channelId = await CS.getChannelId();
-  if (!channelId) throw new CustomizedError('*user_error_no_channel');
-  const memberIds = await CS.getGroupMemberIds(channelId);
+  const channel = await CS.readChannel();
+  if (!channel) throw new CustomizedError('*user_error_no_channel');
+  const memberIds = await CS.getMemberIds(channel.id);
 
   const messages = convertTokensToMessages(tokenGroups);
 
-  const RS = new GroupRecordService({ userId, channelId, memberIds });
+  const RS = new GroupRecordService({ userId, channelId: channel.id, memberIds });
   return processRecordCRUD(messages, RS);
+};
+
+export const handleChannelRequest = async (
+  request: CustomizedChannelRequest,
+): Promise<ChannelResponse> => {
+  const { members, userId, groupId } = request;
+
+  const CS = new GroupChannelService({ groupId, userId });
+
+  const channel = await CS.readChannel();
+  if (channel) {
+    const memberIds = await CS.getMemberIds(channel.id);
+    return {
+      type: 'validate',
+      result: { ...channel, members: memberIds },
+    };
+  }
+
+  if (!members) throw new CustomizedError('*missed_members');
+
+  const result = await CS.createChannel(members);
+  return {
+    type: 'create',
+    result: { ...result, members },
+  };
 };
 
 const errorHandler = async (

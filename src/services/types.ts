@@ -1,3 +1,4 @@
+import { ChannelSummary } from '@repositories/channel/types';
 import {
   CreateTransactionParams,
   DeleteRecordParams,
@@ -96,3 +97,14 @@ export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];
 export const isCreateMsg = (msg: CustomizedMessage): msg is CreateTransactionPayload => {
   return msg.type === 'create';
 };
+
+export interface CustomizedChannelRequest {
+  members?: string[];
+  userId: string;
+  groupId: string;
+}
+
+export interface ChannelResponse {
+  type: 'validate' | 'create';
+  result: ChannelSummary & { members: string[] };
+}

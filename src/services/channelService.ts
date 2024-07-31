@@ -27,14 +27,12 @@ export class ChannelService {
     this.userId = userId;
   }
 
-  public async getChannelId(): Promise<UUID | undefined> {
-    const channel = await readChannel({ channel_name: this.userId });
-    return channel?.id;
+  public async readChannel() {
+    return readChannel({ channel_name: this.userId });
   }
 
-  public async createChannel(): Promise<UUID> {
-    const channel = await createChannel({ channel_name: this.userId, username: this.userId });
-    return channel.id;
+  public async createChannel() {
+    return createChannel({ channel_name: this.userId, username: this.userId });
   }
 }
 
@@ -48,25 +46,24 @@ export class GroupChannelService {
     this.userId = userId;
   }
 
-  public async getChannelId(): Promise<UUID | undefined> {
-    const channel = await readChannel({ channel_name: this.groupId });
-    return channel?.id;
+  public async readChannel() {
+    return readChannel({ channel_name: this.groupId });
   }
 
-  public async getGroupMemberIds(channelId: UUID): Promise<string[]> {
-    const memberIds = await getChannelMembers({ channel_id: channelId });
-    await this.validateChannelMembersInGroup(memberIds);
-    return memberIds;
-  }
-
-  public async createChannel(memberIds: string[]): Promise<UUID> {
+  public async createChannel(memberIds: string[]) {
     await this.validateChannelMembersInGroup(memberIds);
     const channel = await createChannel({
       channel_name: this.groupId,
       username: this.userId,
       members: memberIds,
     });
-    return channel.id;
+    return channel;
+  }
+
+  public async getMemberIds(channelId: UUID): Promise<string[]> {
+    const memberIds = await getChannelMembers({ channel_id: channelId });
+    await this.validateChannelMembersInGroup(memberIds);
+    return memberIds;
   }
 
   private async validateChannelMembersInGroup(memberIds: string[]): Promise<void> {
@@ -85,17 +82,17 @@ export class GroupChannelService {
   }
 
   public async addChannelMembers(memberIds: string[]): Promise<string[]> {
-    const channelId = (await this.getChannelId()) as UUID;
+    const channel = await this.readChannel();
     return addChannelMembers({
-      channel_id: channelId,
+      channel_id: channel?.id as UUID,
       members: memberIds,
     });
   }
 
   public async removeChannelMembers(memberIds: string[]): Promise<(string | undefined)[]> {
-    const channelId = (await this.getChannelId()) as UUID;
+    const channel = await this.readChannel();
     return removeChannelMembers({
-      channel_id: channelId,
+      channel_id: channel?.id as UUID,
       members: memberIds,
     });
   }
