@@ -3,7 +3,7 @@ import * as line from '@line/bot-sdk';
 import { SYSTEM_COMMANDS } from './constants';
 import { MessageHandlerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
-import recordHandler from '../services';
+import { recordHandler } from '../services';
 import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 

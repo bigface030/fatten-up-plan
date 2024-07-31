@@ -30,12 +30,12 @@ export type CustomizedMessage =
   | DeleteRecordPayload
   | ReadRecordPayload<Action>;
 
-export interface CustomizedMessageRequest {
+export interface CustomizedRecordRequest {
   tokenGroups: string[][];
   userId: string;
 }
 
-export interface CustomizedGroupMessageRequest extends CustomizedMessageRequest {
+export interface CustomizedGroupRecordRequest extends CustomizedRecordRequest {
   groupId: string;
 }
 
@@ -75,14 +75,11 @@ interface ReadStatementResponse {
 
 export type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse;
 
-export type SuccessfulResponseBody =
-  | CreateRecordResponse
-  | DeleteRecordResponse
-  | ReadRecordResponse;
+export type RecordResponseBody = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
 
-type SuccessfulResponse = {
+type SuccessfulResponse<T> = {
   status: 'success';
-  body: SuccessfulResponseBody;
+  body: T;
 };
 
 type FailedResponse = {
@@ -90,7 +87,7 @@ type FailedResponse = {
   msg: string;
 };
 
-export type CustomizedMessageResponse = SuccessfulResponse | FailedResponse;
+export type CustomizedResponse<T> = SuccessfulResponse<T> | FailedResponse;
 
 export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];
 
@@ -104,7 +101,7 @@ export interface CustomizedChannelRequest {
   groupId: string;
 }
 
-export interface ChannelResponse {
+export interface ChannelResponseBody {
   type: 'validate' | 'create';
   result: ChannelSummary & { members: string[] };
 }
