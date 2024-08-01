@@ -7,6 +7,8 @@ import {
   CustomizedResponse,
   RecordResponseBody,
   isCreateMsg,
+  RecordResponse,
+  ChannelResponse,
 } from './types';
 import { validateInput } from './validateInput';
 import { ChannelService, GroupChannelService } from './channelService';
@@ -105,7 +107,7 @@ export const handleChannelRequest = async (
 const errorHandler = async <T>(fn: () => Promise<T>): Promise<CustomizedResponse<T>> => {
   try {
     const response = await fn();
-    return { status: 'success', body: response };
+    return { status: 'success', ...response };
   } catch (e) {
     if (e instanceof CustomizedError) {
       return { status: 'failed', msg: e.message };
@@ -116,14 +118,20 @@ const errorHandler = async <T>(fn: () => Promise<T>): Promise<CustomizedResponse
   }
 };
 
-export const recordHandler = (request: CustomizedRecordRequest) => {
-  return errorHandler(() => handleRecordRequest(request));
-};
+export const recordHandler = (request: CustomizedRecordRequest) =>
+  errorHandler(async (): Promise<RecordResponse> => {
+    const res = await handleRecordRequest(request);
+    return { type: 'record', body: res };
+  });
 
-export const groupRecordHandler = (request: CustomizedGroupRecordRequest) => {
-  return errorHandler(() => handleGroupRecordRequest(request));
-};
+export const groupRecordHandler = (request: CustomizedGroupRecordRequest) =>
+  errorHandler(async (): Promise<RecordResponse> => {
+    const res = await handleGroupRecordRequest(request);
+    return { type: 'record', body: res };
+  });
 
-export const channelHandler = (request: CustomizedChannelRequest) => {
-  return errorHandler(() => handleChannelRequest(request));
-};
+export const channelHandler = (request: CustomizedChannelRequest) =>
+  errorHandler(async (): Promise<ChannelResponse> => {
+    const res = await handleChannelRequest(request);
+    return { type: 'channel', body: res };
+  });

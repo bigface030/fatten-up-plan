@@ -3,8 +3,17 @@ export interface TagConfig {
   classification: string | null;
 }
 
-export interface MessageHandlerSource {
+interface MessageControllerSourceBase {
   text: string;
   userId: string;
-  groupId?: string;
 }
+
+type UserMessageControllerSource = { type: 'user' } & MessageControllerSourceBase;
+
+type GroupMessageControllerSource = {
+  type: 'group';
+  groupId: string;
+  members: string[];
+} & MessageControllerSourceBase;
+
+export type MessageControllerSource = UserMessageControllerSource | GroupMessageControllerSource;

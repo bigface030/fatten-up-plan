@@ -77,10 +77,12 @@ export type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse;
 
 export type RecordResponseBody = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
 
-type SuccessfulResponse<T> = {
-  status: 'success';
-  body: T;
+export type RecordResponse = {
+  type: 'record';
+  body: RecordResponseBody;
 };
+
+type SuccessfulResponse<T> = { status: 'success' } & T;
 
 type FailedResponse = {
   status: 'failed';
@@ -104,4 +106,9 @@ export interface CustomizedChannelRequest {
 export interface ChannelResponseBody {
   type: 'validate' | 'create';
   result: ChannelSummary & { members: string[] };
+}
+
+export interface ChannelResponse {
+  type: 'channel';
+  body: ChannelResponseBody;
 }

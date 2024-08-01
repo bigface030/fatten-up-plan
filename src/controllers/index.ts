@@ -1,25 +1,41 @@
 import * as line from '@line/bot-sdk';
 
 import { SYSTEM_COMMANDS } from './constants';
-import { MessageHandlerSource, TagConfig } from './types';
+import { MessageControllerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
-import { recordHandler } from '../services';
+import { channelHandler, groupRecordHandler, recordHandler } from '../services';
 import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 
 const messageEventController = (event: line.MessageEvent) => {
   const msg = event.message as line.TextEventMessage;
+
   if (event.source.type === 'user') {
-    return messageHandler({
+    return messageController({
+      type: 'user',
       text: msg.text,
       userId: event.source.userId,
     });
   }
+
+  if (event.source.type === 'group') {
+    const mentionedUsers = (msg.mention?.mentionees || []).filter(
+      (mentionee) => mentionee.type === 'user',
+    );
+    return messageController({
+      type: 'group',
+      text: msg.text,
+      groupId: event.source.groupId,
+      userId: event.source.userId as string,
+      members: mentionedUsers.map((user) => user.userId as string),
+    });
+  }
+
   return 'invalid message event';
 };
 
-export const messageHandler = async (source: MessageHandlerSource): Promise<string> => {
-  const { text, userId } = source;
+export const messageController = async (source: MessageControllerSource): Promise<string> => {
+  const { text, userId, type: msgType } = source;
 
   const textInput = text.trim();
 
@@ -41,28 +57,56 @@ export const messageHandler = async (source: MessageHandlerSource): Promise<stri
     .split('\n')
     .map((input) => input.trim().replace(/\s+/g, ' ').split(' '));
 
-  const res = await recordHandler({ tokenGroups, userId });
+  let res;
+  if (msgType === 'group') {
+    const { members, groupId } = source;
+
+    // TODO: optimize condition
+    if (members.length > 0) {
+      res = await channelHandler({ members, groupId, userId });
+    } else {
+      res = await groupRecordHandler({ tokenGroups, userId, groupId });
+    }
+  } else {
+    res = await recordHandler({ tokenGroups, userId });
+  }
 
   if (res.status === 'failed') {
     return localization[res.msg] || res.msg;
   }
 
-  const { type } = res.body;
-  if (type === 'create') {
-    return displayRecords(res.body.result, localization['create_success']);
-  } else if (type === 'delete') {
-    if (!res.body.result) return localization['no_records'];
-    return displayRecords([res.body.result], localization['delete_success']);
-  } else if (type === 'read') {
-    const { action, result } = res.body;
-    if (action === 'read_balance') {
-      return displayBalance(result);
-    } else if (action === 'read_statement') {
-      return displayStatement(result);
+  if (res.type === 'record') {
+    const { type } = res.body;
+    if (type === 'create') {
+      return displayRecords(res.body.result, localization['create_success']);
+    } else if (type === 'delete') {
+      if (!res.body.result) return localization['no_records'];
+      return displayRecords([res.body.result], localization['delete_success']);
+    } else if (type === 'read') {
+      const { action, result } = res.body;
+      if (action === 'read_balance') {
+        return displayBalance(result);
+      } else if (action === 'read_statement') {
+        return displayStatement(result);
+      }
     }
+
+    return 'invalid record type';
   }
 
-  return 'invalid record type';
+  if (res.type === 'channel') {
+    const { type } = res.body;
+    if (type === 'create') {
+      return 'successfully_create';
+    }
+    if (type === 'validate') {
+      return 'successfully_validate';
+    }
+
+    return 'invalid channel type';
+  }
+
+  return 'invalid res type';
 };
 
 const classifyTags = (tags: Record<string, TagConfig>) => {

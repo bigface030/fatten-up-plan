@@ -2,10 +2,11 @@ import 'dotenv/config';
 
 import { version as appVersion } from '../package.json';
 import * as db from './db';
-import { messageHandler } from './controllers';
+import { messageController } from './controllers';
 
 const handleInput = (input: string) => {
-  return messageHandler({
+  return messageController({
+    type: 'user',
     text: input,
     userId: process.env.DB_ADMIN_USERNAME as string,
   });
