@@ -98,9 +98,9 @@ export const isCreateMsg = (msg: CustomizedMessage): msg is CreateTransactionPay
 };
 
 export interface CustomizedChannelRequest {
-  members?: string[];
-  userId: string;
   groupId: string;
+  members?: string[];
+  userId?: string;
 }
 
 export interface ChannelResponseBody {

@@ -68,7 +68,7 @@ export const handleGroupRecordRequest = async (
 ): Promise<RecordResponseBody> => {
   const { tokenGroups, userId, groupId } = request;
 
-  const CS = new GroupChannelService({ groupId, userId });
+  const CS = new GroupChannelService({ groupId });
   const channel = await CS.readChannel();
   if (!channel) throw new CustomizedError('*user_error_no_channel');
   const memberIds = await CS.getMemberIds(channel.id);
@@ -84,7 +84,7 @@ export const handleChannelRequest = async (
 ): Promise<ChannelResponseBody> => {
   const { members, userId, groupId } = request;
 
-  const CS = new GroupChannelService({ groupId, userId });
+  const CS = new GroupChannelService({ groupId });
 
   const channel = await CS.readChannel();
   if (channel) {
@@ -95,9 +95,9 @@ export const handleChannelRequest = async (
     };
   }
 
-  if (!members) throw new CustomizedError('*missing_members');
+  if (!members || !userId) throw new CustomizedError('*missing_members');
 
-  const result = await CS.createChannel(members);
+  const result = await CS.createChannel(members, userId);
   return {
     type: 'create',
     result: { ...result, members },

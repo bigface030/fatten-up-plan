@@ -7,7 +7,19 @@ import { channelHandler, groupRecordHandler, recordHandler } from '../services';
 import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
 
-const messageEventController = (event: line.MessageEvent) => {
+export const joinEventController = async (event: line.JoinEvent) => {
+  const source = event.source as line.Group;
+
+  const res = await channelHandler({ groupId: source.groupId });
+
+  if (res.status === 'failed') {
+    return localization[res.msg] || res.msg;
+  }
+
+  return 'successfully_validate';
+};
+
+export const messageEventController = (event: line.MessageEvent) => {
   const msg = event.message as line.TextEventMessage;
 
   if (event.source.type === 'user') {
@@ -212,5 +224,3 @@ const displayStatement = (result: ReadStatementResult) => {
 
   return arr.join('\n');
 };
-
-export default messageEventController;

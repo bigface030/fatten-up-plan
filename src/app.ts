@@ -4,7 +4,7 @@ import * as line from '@line/bot-sdk';
 
 import { version as appVersion } from '../package.json';
 import { checkDbVersion } from './db';
-import messageEventController from './controllers';
+import { joinEventController, messageEventController } from './controllers';
 import MessageApiClient from '@utils/messageApiClient';
 
 const app = express();
@@ -45,17 +45,27 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
 });
 
 const handleEvent = async (event: line.WebhookEvent) => {
-  if (event.type !== 'message' || event.message.type !== 'text') {
-    return null;
+  if (event.type === 'message' && event.message.type === 'text') {
+    const text = await messageEventController(event);
+    const echo = { type: 'text' as const, text };
+
+    return MessageApiClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [echo],
+    });
   }
 
-  const text = await messageEventController(event);
-  const echo = { type: 'text' as const, text };
+  if (event.type === 'join') {
+    const text = await joinEventController(event);
+    const echo = { type: 'text' as const, text };
 
-  return MessageApiClient.replyMessage({
-    replyToken: event.replyToken,
-    messages: [echo],
-  });
+    return MessageApiClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [echo],
+    });
+  }
+
+  return null;
 };
 
 app.listen(port, () => {

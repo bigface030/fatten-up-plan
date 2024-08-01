@@ -16,7 +16,6 @@ interface ChannelServiceParams {
 
 interface GroupChannelServiceParams {
   groupId: string;
-  userId: string;
 }
 
 export class ChannelService {
@@ -38,23 +37,21 @@ export class ChannelService {
 
 export class GroupChannelService {
   protected groupId;
-  protected userId;
 
   constructor(params: GroupChannelServiceParams) {
-    const { groupId, userId } = params;
+    const { groupId } = params;
     this.groupId = groupId;
-    this.userId = userId;
   }
 
   public async readChannel() {
     return readChannel({ channel_name: this.groupId });
   }
 
-  public async createChannel(memberIds: string[]) {
+  public async createChannel(memberIds: string[], userId: string) {
     await this.validateChannelMembersInGroup(memberIds);
     const channel = await createChannel({
       channel_name: this.groupId,
-      username: this.userId,
+      username: userId,
       members: memberIds,
     });
     return channel;
