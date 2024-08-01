@@ -48,11 +48,11 @@ export class GroupChannelService {
   }
 
   public async createChannel(memberIds: string[], userId: string) {
-    await this.validateChannelMembersInGroup(memberIds);
+    await this.validateChannelMembersInGroup([...memberIds, userId]);
     const channel = await createChannel({
       channel_name: this.groupId,
       username: userId,
-      members: memberIds,
+      members: [...memberIds, userId],
     });
     return channel;
   }

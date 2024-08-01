@@ -88,7 +88,10 @@ export class GroupRecordService extends RecordService {
       ...params,
       splits: this.memberIds.map((userId) => ({
         username: userId,
-        amount: divide(params.amount, this.memberIds.length),
+        amount: divide(
+          params.activity === 'expenditure' ? -params.amount : params.amount,
+          this.memberIds.length,
+        ),
       })),
     }));
     return super.createRecords(_paramsList);
