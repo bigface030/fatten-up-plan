@@ -70,7 +70,7 @@ export const handleGroupRecordRequest = async (
 
   const CS = new GroupChannelService({ groupId });
   const channel = await CS.readChannel();
-  if (!channel) throw new CustomizedError('*user_error_no_channel');
+  if (!channel) throw new CustomizedError('user_error_invalid_msg_on_none_channel');
   const memberIds = await CS.getMemberIds(channel.id);
 
   const messages = convertTokensToMessages(tokenGroups);
@@ -95,7 +95,7 @@ export const handleChannelRequest = async (
     };
   }
 
-  if (!members || !userId) throw new CustomizedError('*missing_members');
+  if (!members || !userId) throw new CustomizedError('greeting_to_create_channel');
 
   const result = await CS.createChannel(members, userId);
   return {

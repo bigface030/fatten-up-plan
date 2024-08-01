@@ -16,7 +16,7 @@ export const joinEventController = async (event: line.JoinEvent) => {
     return localization[res.msg] || res.msg;
   }
 
-  return 'successfully_validate';
+  return localization['successfully_validate_channel'];
 };
 
 export const messageEventController = (event: line.MessageEvent) => {
@@ -109,10 +109,10 @@ export const messageController = async (source: MessageControllerSource): Promis
   if (res.type === 'channel') {
     const { type } = res.body;
     if (type === 'create') {
-      return 'successfully_create';
+      return localization['successfully_create_channel'];
     }
     if (type === 'validate') {
-      return 'successfully_validate';
+      return localization['successfully_validate_channel'];
     }
 
     return 'invalid channel type';
