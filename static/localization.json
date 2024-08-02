@@ -13,6 +13,7 @@
   "successfully_create_channel": "頻道新增成功！可以開始記帳囉～請輸入「幫助」以查看使用方法。",
   "successfully_validate_channel": "頻道驗證成功！可以繼續使用記帳功能囉～",
   "greeting_to_create_channel": "歡迎使用記帳機器人！待所有成員加入後，請使用 @ 標註出除了你以外的所有群組成員，以建立頻道。",
+  "admin_error_validate_channel_members": "驗證頻道成員時出現問題，請洽管理員。",
   "user_error_invalid_msg_on_none_channel": "此群組尚未建立頻道！請先使用 @ 標註出除了你以外的所有群組成員，待建立頻道後再進行記帳操作。",
   "user_error_invalid_command": "無效的指令！請輸入「幫助」以查看所有支援的指令。",
   "user_error_invalid_params_length": "無效的參數數量！請輸入「幫助」以查看各指令的使用方法。",

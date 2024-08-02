@@ -1,4 +1,5 @@
 import { UUID } from 'crypto';
+import { HTTPFetchError } from '@line/bot-sdk';
 
 import {
   addChannelMembers,
@@ -7,7 +8,7 @@ import {
   readChannel,
   removeChannelMembers,
 } from '@repositories/channel';
-import { ArrayLengthError } from '@utils/exceptions';
+import { ValidationError } from '@utils/exceptions';
 import MessageApiClient from '@utils/messageApiClient';
 
 interface ChannelServiceParams {
@@ -67,13 +68,15 @@ export class GroupChannelService {
     const groupMembers = await MessageApiClient.getGroupMemberCount(this.groupId);
 
     if (groupMembers.count !== memberIds.length)
-      throw new ArrayLengthError('incorrect channel member count in db', { array: memberIds });
+      throw new ValidationError('incorrect channel member count in db', { raw: memberIds });
 
-    /**
-     * @throws {line.JSONParseError}
-     */
     const validateIfUserInGroup = (userId: string) =>
-      MessageApiClient.getGroupMemberProfile(this.groupId, userId);
+      MessageApiClient.getGroupMemberProfile(this.groupId, userId).catch((err) => {
+        if (err instanceof HTTPFetchError && err.status === 404) {
+          throw new ValidationError('the user id is not in given group', { raw: userId });
+        }
+        throw err;
+      });
 
     await Promise.all(memberIds.map(validateIfUserInGroup));
   }

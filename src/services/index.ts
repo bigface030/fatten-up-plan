@@ -17,7 +17,7 @@ import { validateInput } from './validateInput';
 import { ChannelService, GroupChannelService } from './channelService';
 import { GroupRecordService, RecordService } from './RecordService';
 
-import { CustomizedError } from '@utils/exceptions';
+import { CustomizedError, ValidationError } from '@utils/exceptions';
 
 const convertTokensToMessages = (tokenGroups: string[][]) => {
   const MAXIMUM_TOKEN_GROUP_LENGTH = 5;
@@ -133,6 +133,9 @@ const errorHandler = async <T>(fn: () => Promise<T>): Promise<CustomizedResponse
   } catch (e) {
     if (e instanceof CustomizedError) {
       return { status: 'failed', msg: e.message };
+    } else if (e instanceof ValidationError) {
+      console.error(e);
+      return { status: 'failed', msg: 'admin_error_validate_channel_members' };
     } else {
       console.error(e);
       return { status: 'failed', msg: 'db_error_sql_query_execution_failed' };

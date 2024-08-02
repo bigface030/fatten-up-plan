@@ -2,17 +2,16 @@
 
 type ErrorDetails = {
   raw?: any;
-  array?: any[];
 };
 
-export class ArrayLengthError extends Error {
-  public array: any;
+export class ValidationError extends Error {
+  public raw: any;
 
-  constructor(message: string, { array }: ErrorDetails = {}) {
+  constructor(message: string, { raw }: ErrorDetails = {}) {
     super(message);
     this.name = this.constructor.name;
 
-    Object.assign(this, { array });
+    Object.assign(this, { raw });
   }
 }
 
