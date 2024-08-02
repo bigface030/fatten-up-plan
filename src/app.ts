@@ -55,14 +55,16 @@ const handleEvent = async (event: line.WebhookEvent) => {
     });
   }
 
-  if (event.type === 'join') {
-    const text = await joinEventController(event);
-    const echo = { type: 'text' as const, text };
+  if (process.env.GROUP_RECORDING_FEATURE === 'true') {
+    if (event.type === 'join') {
+      const text = await joinEventController(event);
+      const echo = { type: 'text' as const, text };
 
-    return MessageApiClient.replyMessage({
-      replyToken: event.replyToken,
-      messages: [echo],
-    });
+      return MessageApiClient.replyMessage({
+        replyToken: event.replyToken,
+        messages: [echo],
+      });
+    }
   }
 
   return null;

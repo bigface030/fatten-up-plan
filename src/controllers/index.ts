@@ -30,17 +30,19 @@ export const messageEventController = (event: line.MessageEvent) => {
     });
   }
 
-  if (event.source.type === 'group') {
-    const mentionedUsers = (msg.mention?.mentionees || []).filter(
-      (mentionee) => mentionee.type === 'user',
-    );
-    return messageController({
-      type: 'group',
-      text: msg.text,
-      groupId: event.source.groupId,
-      userId: event.source.userId as string,
-      members: mentionedUsers.map((user) => user.userId as string),
-    });
+  if (process.env.GROUP_RECORDING_FEATURE === 'true') {
+    if (event.source.type === 'group') {
+      const mentionedUsers = (msg.mention?.mentionees || []).filter(
+        (mentionee) => mentionee.type === 'user',
+      );
+      return messageController({
+        type: 'group',
+        text: msg.text,
+        groupId: event.source.groupId,
+        userId: event.source.userId as string,
+        members: mentionedUsers.map((user) => user.userId as string),
+      });
+    }
   }
 
   return 'invalid message event';
