@@ -78,18 +78,19 @@ export class GroupChannelService {
     await Promise.all(memberIds.map(validateIfUserInGroup));
   }
 
-  public async addChannelMembers(memberIds: string[]): Promise<string[]> {
-    const channel = await this.readChannel();
+  public async addChannelMembers(channelId: UUID, memberIds: string[]): Promise<string[]> {
     return addChannelMembers({
-      channel_id: channel?.id as UUID,
+      channel_id: channelId,
       members: memberIds,
     });
   }
 
-  public async removeChannelMembers(memberIds: string[]): Promise<(string | undefined)[]> {
-    const channel = await this.readChannel();
+  public async removeChannelMembers(
+    channelId: UUID,
+    memberIds: string[],
+  ): Promise<(string | undefined)[]> {
     return removeChannelMembers({
-      channel_id: channel?.id as UUID,
+      channel_id: channelId,
       members: memberIds,
     });
   }

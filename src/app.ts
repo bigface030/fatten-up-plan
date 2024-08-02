@@ -4,7 +4,12 @@ import * as line from '@line/bot-sdk';
 
 import { version as appVersion } from '../package.json';
 import { checkDbVersion } from './db';
-import { joinEventController, messageEventController } from './controllers';
+import {
+  joinEventController,
+  memberJoinEventController,
+  memberLeaveEventController,
+  messageEventController,
+} from './controllers';
 import MessageApiClient from '@utils/messageApiClient';
 
 const app = express();
@@ -64,6 +69,14 @@ const handleEvent = async (event: line.WebhookEvent) => {
         replyToken: event.replyToken,
         messages: [echo],
       });
+    }
+
+    if (event.type === 'memberJoined') {
+      await memberJoinEventController(event);
+    }
+
+    if (event.type === 'memberLeft') {
+      await memberLeaveEventController(event);
     }
   }
 

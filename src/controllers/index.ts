@@ -3,9 +3,31 @@ import * as line from '@line/bot-sdk';
 import { SYSTEM_COMMANDS } from './constants';
 import { MessageControllerSource, TagConfig } from './types';
 import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
-import { channelHandler, groupRecordHandler, recordHandler } from '../services';
+import { channelHandler, groupRecordHandler, memberHandler, recordHandler } from '../services';
 import { TransactionSummary } from '../repositories/record/types';
 import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
+
+export const memberJoinEventController = async (event: line.MemberJoinEvent) => {
+  const source = event.source as line.Group;
+  const members = event.joined.members.map((member) => member.userId);
+
+  await memberHandler({
+    type: 'join',
+    groupId: source.groupId,
+    members,
+  });
+};
+
+export const memberLeaveEventController = async (event: line.MemberLeaveEvent) => {
+  const source = event.source as line.Group;
+  const members = event.left.members.map((member) => member.userId);
+
+  await memberHandler({
+    type: 'leave',
+    groupId: source.groupId,
+    members,
+  });
+};
 
 export const joinEventController = async (event: line.JoinEvent) => {
   const source = event.source as line.Group;

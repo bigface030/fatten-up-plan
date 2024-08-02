@@ -112,3 +112,19 @@ export interface ChannelResponse {
   type: 'channel';
   body: ChannelResponseBody;
 }
+
+export interface CustomizedMemberRequest {
+  type: 'join' | 'leave';
+  groupId: string;
+  members: string[];
+}
+
+export interface MemberResponseBody {
+  type: 'join' | 'leave';
+  members: string[];
+}
+
+export interface MemberResponse {
+  type: 'member';
+  body: MemberResponseBody;
+}

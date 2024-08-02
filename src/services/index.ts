@@ -9,6 +9,9 @@ import {
   isCreateMsg,
   RecordResponse,
   ChannelResponse,
+  CustomizedMemberRequest,
+  MemberResponseBody,
+  MemberResponse,
 } from './types';
 import { validateInput } from './validateInput';
 import { ChannelService, GroupChannelService } from './channelService';
@@ -63,7 +66,7 @@ const handleRecordRequest = async (
   return processRecordCRUD(messages, RS);
 };
 
-export const handleGroupRecordRequest = async (
+const handleGroupRecordRequest = async (
   request: CustomizedGroupRecordRequest,
 ): Promise<RecordResponseBody> => {
   const { tokenGroups, userId, groupId } = request;
@@ -79,7 +82,7 @@ export const handleGroupRecordRequest = async (
   return processRecordCRUD(messages, RS);
 };
 
-export const handleChannelRequest = async (
+const handleChannelRequest = async (
   request: CustomizedChannelRequest,
 ): Promise<ChannelResponseBody> => {
   const { members, userId, groupId } = request;
@@ -102,6 +105,25 @@ export const handleChannelRequest = async (
     type: 'create',
     result: { ...result, members },
   };
+};
+
+const handleMemberRequest = async (
+  request: CustomizedMemberRequest,
+): Promise<MemberResponseBody> => {
+  const { groupId, members, type } = request;
+
+  const CS = new GroupChannelService({ groupId });
+
+  const channel = await CS.readChannel();
+  if (!channel) throw new CustomizedError('user_error_invalid_msg_on_none_channel');
+
+  if (type === 'join') {
+    const result = await CS.addChannelMembers(channel.id, members);
+    return { type, members: result };
+  } else {
+    const result = await CS.removeChannelMembers(channel.id, members);
+    return { type, members: result.filter((res): res is string => !!res) };
+  }
 };
 
 const errorHandler = async <T>(fn: () => Promise<T>): Promise<CustomizedResponse<T>> => {
@@ -134,4 +156,10 @@ export const channelHandler = (request: CustomizedChannelRequest) =>
   errorHandler(async (): Promise<ChannelResponse> => {
     const res = await handleChannelRequest(request);
     return { type: 'channel', body: res };
+  });
+
+export const memberHandler = (request: CustomizedMemberRequest) =>
+  errorHandler(async (): Promise<MemberResponse> => {
+    const res = await handleMemberRequest(request);
+    return { type: 'member', body: res };
   });
