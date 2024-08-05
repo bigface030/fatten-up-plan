@@ -84,16 +84,17 @@ export class GroupRecordService extends RecordService {
   }
 
   public createRecords(paramsList: CreateTransactionParams[]): Promise<CreateRecordResponse> {
-    const _paramsList = paramsList.map((params) => ({
-      ...params,
-      splits: this.memberIds.map((userId) => ({
-        username: userId,
-        amount: divide(
-          params.activity === 'expenditure' ? -params.amount : params.amount,
-          this.memberIds.length,
-        ),
-      })),
-    }));
+    const _paramsList = paramsList.map((params) => {
+      const amount = params.activity === 'expenditure' ? -params.amount : params.amount;
+      const splitAmount = divide(amount, this.memberIds.length);
+      return {
+        ...params,
+        splits: this.memberIds.map((userId) => ({
+          username: userId,
+          amount: userId === this.userId ? splitAmount - amount : splitAmount,
+        })),
+      };
+    });
     return super.createRecords(_paramsList);
   }
 }
