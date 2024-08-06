@@ -1,6 +1,6 @@
-import { TransactionSummary } from '@repositories/record/types';
+import { TransactionSummary, TransferSummary } from '@repositories/record/types';
 
-import { ReadBalanceResult, ReadStatementResult } from './types';
+import { ReadBalanceResult, ReadSettlementResult, ReadStatementResult } from './types';
 import { add } from './decimalUtils';
 
 export const operateReadBalance = (records: TransactionSummary[]): ReadBalanceResult => {
@@ -34,4 +34,44 @@ export const operateReadStatement = (records: TransactionSummary[]): ReadStateme
   });
 
   return result;
+};
+
+export const operateReadSettlement = (
+  splitList: TransferSummary['splits'][],
+): ReadSettlementResult => {
+  const totals: Record<string, number> = {};
+  for (const splits of splitList) {
+    for (const { username, amount } of splits) {
+      if (totals[username]) {
+        totals[username] += amount;
+      } else {
+        totals[username] = amount;
+      }
+    }
+  }
+
+  const receivers = Object.entries(totals)
+    .filter(([, amount]) => amount > 0)
+    .sort((a, b) => b[1] - a[1]);
+
+  const payers = Object.entries(totals)
+    .filter(([, amount]) => amount < 0)
+    .sort((a, b) => a[1] - b[1]);
+
+  const payments: ReadSettlementResult['payments'] = [];
+  while (receivers.length > 0 && payers.length > 0) {
+    const [receiver, receiveAmount] = receivers.shift() as [string, number];
+    const [payer, payAmount] = payers.shift() as [string, number];
+    if (receiveAmount > -payAmount) {
+      payments.push({ payer, receiver, amount: -payAmount });
+      receivers.unshift([receiver, receiveAmount + payAmount]);
+    } else if (receiveAmount < -payAmount) {
+      payments.push({ payer, receiver, amount: receiveAmount });
+      payers.unshift([payer, receiveAmount + payAmount]);
+    } else {
+      payments.push({ payer, receiver, amount: receiveAmount });
+    }
+  }
+
+  return { totals, payments };
 };

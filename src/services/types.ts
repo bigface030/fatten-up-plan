@@ -51,6 +51,15 @@ export interface ReadBalanceResultWithParams extends ReadBalanceResult {
 
 export type ReadStatementResult = Record<string, TransactionSummary[]>;
 
+export interface ReadSettlementResult {
+  totals: Record<string, number>;
+  payments: {
+    payer: string;
+    receiver: string;
+    amount: number;
+  }[];
+}
+
 export interface CreateRecordResponse {
   type: 'create';
   result: TransactionSummary[];
@@ -73,7 +82,16 @@ interface ReadStatementResponse {
   result: ReadStatementResult;
 }
 
-export type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse;
+interface ReadSettlementResponse {
+  type: 'read';
+  action: 'read_settlement';
+  result: ReadSettlementResult;
+}
+
+export type ReadRecordResponse =
+  | ReadBalanceResponse
+  | ReadStatementResponse
+  | ReadSettlementResponse;
 
 export type RecordResponseBody = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
 
