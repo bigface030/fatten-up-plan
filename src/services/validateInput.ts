@@ -5,88 +5,87 @@ import { formatDate, formatDefaultDateInterval, isValidDateString } from './date
 import { CustomizedMessage } from './types';
 import { CustomizedError } from '@utils/exceptions';
 
-export const validateInput = (args: string[]): CustomizedMessage => {
+const validateDeleteCommand = (args: string[]): CustomizedMessage => {
+  const [, ...params] = args;
+
+  if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
+
+  const activityInput: string | undefined = params[0];
+  if (activityInput && ![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput]))
+    throw new CustomizedError('user_error_invalid_params_value');
+
+  return {
+    type: 'delete',
+    params: {
+      activity: dictionary[activityInput] as TransactionActivity | undefined,
+    },
+  };
+};
+
+const validateReadCommand = (args: string[]): CustomizedMessage => {
   const [command, ...params] = args;
 
-  if (!dictionary[command] && !tags[command])
-    throw new CustomizedError('user_error_invalid_command');
+  if (params.length < 1 || params.length > 2)
+    throw new CustomizedError('user_error_invalid_params_length');
 
-  if (dictionary[command] === COMMANDS.DELETE_LATEST) {
+  if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
     if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
-
-    const activityInput: string | undefined = params[0];
-    if (
-      activityInput &&
-      ![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput])
-    )
-      throw new CustomizedError('user_error_invalid_params_value');
-
-    return {
-      type: 'delete',
-      params: {
-        activity: dictionary[activityInput] as TransactionActivity | undefined,
-      },
-    };
-  }
-
-  if ([COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(dictionary[command])) {
-    if (params.length < 1 || params.length > 2)
-      throw new CustomizedError('user_error_invalid_params_length');
-
-    if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
-      if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
-
-      return {
-        type: 'read',
-        action: ACTIONS[dictionary[command]],
-        params: {
-          interval: formatDefaultDateInterval(intervals[params[0]]),
-        },
-      };
-    }
-
-    if (!params.every(isValidDateString))
-      throw new CustomizedError('user_error_invalid_params_value');
 
     return {
       type: 'read',
       action: ACTIONS[dictionary[command]],
       params: {
-        interval: params.map(formatDate),
+        interval: formatDefaultDateInterval(intervals[params[0]]),
       },
     };
   }
 
-  if ([COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[command])) {
-    if (params.length < 3 || params.length > 4)
-      throw new CustomizedError('user_error_invalid_params_length');
+  if (!params.every(isValidDateString))
+    throw new CustomizedError('user_error_invalid_params_value');
 
-    const [dateString] = params;
-    if (!isValidDateString(dateString))
-      throw new CustomizedError('user_error_invalid_params_value');
+  return {
+    type: 'read',
+    action: ACTIONS[dictionary[command]],
+    params: {
+      interval: params.map(formatDate),
+    },
+  };
+};
 
-    const customized_tag = params[1];
-    if (!tags[customized_tag]) throw new CustomizedError('user_error_invalid_params_value');
+const validateFullyCreateCommand = (args: string[]): CustomizedMessage => {
+  const [command, ...params] = args;
 
-    const activity = dictionary[tags[customized_tag].transaction_type] as TransactionActivity;
-    if (activity !== dictionary[command])
-      throw new CustomizedError('user_error_invalid_params_value');
+  if (params.length < 3 || params.length > 4)
+    throw new CustomizedError('user_error_invalid_params_length');
 
-    const amount = Math.abs(Number(params[2]));
-    if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
+  const [dateString] = params;
+  if (!isValidDateString(dateString)) throw new CustomizedError('user_error_invalid_params_value');
 
-    return {
-      type: 'create',
-      params: {
-        activity,
-        customized_tag,
-        customized_classification: tags[customized_tag].classification,
-        amount,
-        description: params[3],
-        accounting_date: formatDate(dateString),
-      },
-    };
-  }
+  const customized_tag = params[1];
+  if (!tags[customized_tag]) throw new CustomizedError('user_error_invalid_params_value');
+
+  const activity = dictionary[tags[customized_tag].transaction_type] as TransactionActivity;
+  if (activity !== dictionary[command])
+    throw new CustomizedError('user_error_invalid_params_value');
+
+  const amount = Math.abs(Number(params[2]));
+  if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
+
+  return {
+    type: 'create',
+    params: {
+      activity,
+      customized_tag,
+      customized_classification: tags[customized_tag].classification,
+      amount,
+      description: params[3],
+      accounting_date: formatDate(dateString),
+    },
+  };
+};
+
+const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
+  const [command, ...params] = args;
 
   if (!tags[command]) throw new CustomizedError('admin_error_invalid_tag');
 
@@ -110,4 +109,31 @@ export const validateInput = (args: string[]): CustomizedMessage => {
       description: params[1],
     },
   };
+};
+
+type Condition = (command: string) => boolean;
+type Validation = (args: string[]) => CustomizedMessage;
+type ValidationRules = Map<Condition, Validation>;
+
+export const validationRules: ValidationRules = new Map([
+  [(command) => command === COMMANDS.DELETE_LATEST, validateDeleteCommand],
+  [(command) => [COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(command), validateReadCommand],
+  [
+    (command) => [COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(command),
+    validateFullyCreateCommand,
+  ],
+  [() => true, validateSimplyCreateCommand],
+]);
+
+export const createInputValidator = (rules: ValidationRules) => (args: string[]) => {
+  const [command] = args;
+
+  if (!dictionary[command] && !tags[command])
+    throw new CustomizedError('user_error_invalid_command');
+
+  for (const [isMatched, validate] of rules) {
+    if (isMatched(dictionary[command])) return validate(args);
+  }
+
+  throw new CustomizedError('admin_error_no_rule_founded');
 };

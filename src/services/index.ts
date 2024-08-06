@@ -13,7 +13,7 @@ import {
   MemberResponseBody,
   MemberResponse,
 } from './types';
-import { validateInput } from './validateInput';
+import { createInputValidator, validationRules } from './validateInput';
 import { ChannelService, GroupChannelService } from './channelService';
 import { GroupRecordService, RecordService } from './RecordService';
 
@@ -25,6 +25,7 @@ const convertTokensToMessages = (tokenGroups: string[][]) => {
   if (tokenGroups.length > MAXIMUM_TOKEN_GROUP_LENGTH)
     throw new CustomizedError('user_error_invalid_multi_line_length');
 
+  const validateInput = createInputValidator(validationRules);
   const messages = tokenGroups.map(validateInput);
 
   if (messages.length > 1 && !messages.every(isCreateMsg))

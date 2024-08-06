@@ -1,7 +1,9 @@
 import { dictionary, intervals, tags } from '../utils/fileUtils';
 import { ACTIONS } from './constants';
 import { formatDate, formatDefaultDateInterval } from './dateUtils';
-import { validateInput } from './validateInput';
+import { createInputValidator, validationRules } from './validateInput';
+
+const validateInput = createInputValidator(validationRules);
 
 test('input invalid command', () => {
   expect(() => validateInput(['ABC'])).toThrow('user_error_invalid_command');
