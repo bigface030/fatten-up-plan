@@ -34,25 +34,35 @@ const convertTokensToMessages = (tokenGroups: string[][]) => {
   return messages;
 };
 
-const processRecordCRUD = (messages: CustomizedMessage[], service: RecordService) => {
+const processRecordCRUD = async (
+  messages: CustomizedMessage[],
+  service: RecordService,
+): Promise<RecordResponseBody> => {
   const [msg] = messages;
   const { type } = msg;
 
   if (type === 'create') {
     const createRecordsParams = messages.filter(isCreateMsg).map((msg) => msg.params);
-    return service.createRecords(createRecordsParams);
+    const result = await service.createRecords(createRecordsParams);
+    return { type, result };
   } else if (type === 'delete') {
-    return service.deleteRecord(msg.params);
+    const result = await service.deleteRecord(msg.params);
+    return { type, result };
   } else if (type === 'read') {
-    return service.readRecords(msg.params, msg.action);
+    const { action } = msg;
+    if (action === 'read_balance') {
+      const result = await service.readBalance(msg.params);
+      return { type, action, result };
+    } else if (action === 'read_statement') {
+      const result = await service.readStatement(msg.params);
+      return { type, action, result };
+    }
   }
 
   throw new CustomizedError('admin_error_invalid_record_type');
 };
 
-const handleRecordRequest = async (
-  request: CustomizedRecordRequest,
-): Promise<RecordResponseBody> => {
+const handleRecordRequest = async (request: CustomizedRecordRequest) => {
   const { tokenGroups, userId } = request;
 
   const messages = convertTokensToMessages(tokenGroups);
@@ -67,9 +77,7 @@ const handleRecordRequest = async (
   return processRecordCRUD(messages, RS);
 };
 
-const handleGroupRecordRequest = async (
-  request: CustomizedGroupRecordRequest,
-): Promise<RecordResponseBody> => {
+const handleGroupRecordRequest = async (request: CustomizedGroupRecordRequest) => {
   const { tokenGroups, userId, groupId } = request;
 
   const CS = new GroupChannelService({ groupId });

@@ -1,6 +1,6 @@
 import { UUID } from 'crypto';
 
-import { Action, CreateRecordResponse, DeleteRecordResponse, ReadRecordResponse } from './types';
+import { ReadBalanceResultWithParams } from './types';
 import { operateReadBalance, operateReadStatement } from './operateUtils';
 import { divide } from './decimalUtils';
 
@@ -31,46 +31,43 @@ export class RecordService {
     this.channelId = channelId;
   }
 
-  public async createRecords(paramsList: CreateTransactionParams[]): Promise<CreateRecordResponse> {
+  public createRecords(paramsList: CreateTransactionParams[]) {
     const createTransactionParamsList = paramsList.map((params) => ({
       ...params,
       username: this.userId,
       channel_id: this.channelId,
     }));
-    const records = await createTransactions(createTransactionParamsList);
-    return { type: 'create', result: records };
+    return createTransactions(createTransactionParamsList);
   }
 
-  public async deleteRecord(params: DeleteRecordParams): Promise<DeleteRecordResponse> {
+  public async deleteRecord(params: DeleteRecordParams) {
     const deleteLatestRecordParams = {
       ...params,
       username: this.userId,
       channel_id: this.channelId,
     };
     const record = await deleteLatestRecord(deleteLatestRecordParams);
-    return { type: 'delete', result: record as TransactionSummary | undefined };
+    return record as TransactionSummary | undefined;
   }
 
-  public async readRecords(params: ReadRecordParams, action: Action): Promise<ReadRecordResponse> {
+  public async readBalance(params: ReadRecordParams) {
     const readRecordsParams = {
       ...params,
       username: this.userId,
       channel_id: this.channelId,
     };
     const records = await readRecords(readRecordsParams);
-    const response: Record<Action, ReadRecordResponse> = {
-      read_balance: {
-        type: 'read',
-        action: 'read_balance',
-        result: { ...operateReadBalance(records), params },
-      },
-      read_statement: {
-        type: 'read',
-        action: 'read_statement',
-        result: operateReadStatement(records),
-      },
+    return { ...operateReadBalance(records), params } as ReadBalanceResultWithParams;
+  }
+
+  public async readStatement(params: ReadRecordParams) {
+    const readRecordsParams = {
+      ...params,
+      username: this.userId,
+      channel_id: this.channelId,
     };
-    return response[action];
+    const records = await readRecords(readRecordsParams);
+    return operateReadStatement(records);
   }
 }
 
@@ -83,7 +80,7 @@ export class GroupRecordService extends RecordService {
     this.memberIds = memberIds;
   }
 
-  public createRecords(paramsList: CreateTransactionParams[]): Promise<CreateRecordResponse> {
+  public createRecords(paramsList: CreateTransactionParams[]) {
     const _paramsList = paramsList.map((params) => {
       const amount = params.activity === 'expenditure' ? -params.amount : params.amount;
       const splitAmount = divide(amount, this.memberIds.length);

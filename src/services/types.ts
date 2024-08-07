@@ -60,12 +60,12 @@ export interface ReadSettlementResult {
   }[];
 }
 
-export interface CreateRecordResponse {
+interface CreateRecordResponse {
   type: 'create';
   result: TransactionSummary[];
 }
 
-export interface DeleteRecordResponse {
+interface DeleteRecordResponse {
   type: 'delete';
   result?: TransactionSummary;
 }
@@ -88,10 +88,7 @@ interface ReadSettlementResponse {
   result: ReadSettlementResult;
 }
 
-export type ReadRecordResponse =
-  | ReadBalanceResponse
-  | ReadStatementResponse
-  | ReadSettlementResponse;
+type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse | ReadSettlementResponse;
 
 export type RecordResponseBody = CreateRecordResponse | DeleteRecordResponse | ReadRecordResponse;
 
