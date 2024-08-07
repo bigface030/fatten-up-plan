@@ -19,6 +19,10 @@ interface GroupChannelServiceParams {
   groupId: string;
 }
 
+interface MemberServiceParams {
+  channelId: UUID;
+}
+
 export class ChannelService {
   protected userId;
 
@@ -49,7 +53,7 @@ export class GroupChannelService {
   }
 
   public async createChannel(memberIds: string[], userId: string) {
-    await this.validateChannelMembersInGroup([...memberIds, userId]);
+    await MemberService.validateChannelMembersInGroup([...memberIds, userId], this.groupId);
     const channel = await createChannel({
       channel_name: this.groupId,
       username: userId,
@@ -57,21 +61,38 @@ export class GroupChannelService {
     });
     return channel;
   }
+}
 
-  public async getMemberIds(channelId: UUID): Promise<string[]> {
-    const memberIds = await getChannelMembers({ channel_id: channelId });
-    await this.validateChannelMembersInGroup(memberIds);
+export class MemberService {
+  protected channelId;
+
+  constructor(params: MemberServiceParams) {
+    const { channelId } = params;
+    this.channelId = channelId;
+  }
+
+  public async getGroupMemberIds(groupId: string): Promise<string[]> {
+    const memberIds = await getChannelMembers({ channel_id: this.channelId });
+    await MemberService.validateChannelMembersInGroup(memberIds, groupId);
     return memberIds;
   }
 
-  private async validateChannelMembersInGroup(memberIds: string[]): Promise<void> {
-    const groupMembers = await MessageApiClient.getGroupMemberCount(this.groupId);
+  public async addChannelMembers(memberIds: string[]): Promise<string[]> {
+    return addChannelMembers({ channel_id: this.channelId, members: memberIds });
+  }
+
+  public async removeChannelMembers(memberIds: string[]): Promise<(string | undefined)[]> {
+    return removeChannelMembers({ channel_id: this.channelId, members: memberIds });
+  }
+
+  static async validateChannelMembersInGroup(memberIds: string[], groupId: string): Promise<void> {
+    const groupMembers = await MessageApiClient.getGroupMemberCount(groupId);
 
     if (groupMembers.count !== memberIds.length)
       throw new ValidationError('incorrect channel member count in db', { raw: memberIds });
 
     const validateIfUserInGroup = (userId: string) =>
-      MessageApiClient.getGroupMemberProfile(this.groupId, userId).catch((err) => {
+      MessageApiClient.getGroupMemberProfile(groupId, userId).catch((err) => {
         if (err instanceof HTTPFetchError && err.status === 404) {
           throw new ValidationError('the user id is not in given group', { raw: userId });
         }
@@ -79,22 +100,5 @@ export class GroupChannelService {
       });
 
     await Promise.all(memberIds.map(validateIfUserInGroup));
-  }
-
-  public async addChannelMembers(channelId: UUID, memberIds: string[]): Promise<string[]> {
-    return addChannelMembers({
-      channel_id: channelId,
-      members: memberIds,
-    });
-  }
-
-  public async removeChannelMembers(
-    channelId: UUID,
-    memberIds: string[],
-  ): Promise<(string | undefined)[]> {
-    return removeChannelMembers({
-      channel_id: channelId,
-      members: memberIds,
-    });
   }
 }

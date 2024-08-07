@@ -14,7 +14,7 @@ import {
   MemberResponse,
 } from './types';
 import { createInputValidator, validationRules } from './validateInput';
-import { ChannelService, GroupChannelService } from './channelService';
+import { ChannelService, GroupChannelService, MemberService } from './channelService';
 import { GroupRecordService, RecordService } from './RecordService';
 
 import { CustomizedError, ValidationError } from '@utils/exceptions';
@@ -75,7 +75,9 @@ const handleGroupRecordRequest = async (
   const CS = new GroupChannelService({ groupId });
   const channel = await CS.readChannel();
   if (!channel) throw new CustomizedError('user_error_invalid_msg_on_none_channel');
-  const memberIds = await CS.getMemberIds(channel.id);
+
+  const MS = new MemberService({ channelId: channel.id });
+  const memberIds = await MS.getGroupMemberIds(groupId);
 
   const messages = convertTokensToMessages(tokenGroups);
 
@@ -92,7 +94,8 @@ const handleChannelRequest = async (
 
   const channel = await CS.readChannel();
   if (channel) {
-    const memberIds = await CS.getMemberIds(channel.id);
+    const MS = new MemberService({ channelId: channel.id });
+    const memberIds = await MS.getGroupMemberIds(groupId);
     return {
       type: 'validate',
       result: { ...channel, members: memberIds },
@@ -118,11 +121,12 @@ const handleMemberRequest = async (
   const channel = await CS.readChannel();
   if (!channel) throw new CustomizedError('user_error_invalid_msg_on_none_channel');
 
+  const MS = new MemberService({ channelId: channel.id });
   if (type === 'join') {
-    const result = await CS.addChannelMembers(channel.id, members);
+    const result = await MS.addChannelMembers(members);
     return { type, members: result };
   } else {
-    const result = await CS.removeChannelMembers(channel.id, members);
+    const result = await MS.removeChannelMembers(members);
     return { type, members: result.filter((res): res is string => !!res) };
   }
 };
