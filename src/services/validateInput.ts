@@ -15,7 +15,7 @@ const validateDeleteCommand = (args: string[]): CustomizedMessage => {
     throw new CustomizedError('user_error_invalid_params_value');
 
   return {
-    type: 'delete',
+    action: 'delete_latest',
     params: {
       activity: dictionary[activityInput] as TransactionActivity | undefined,
     },
@@ -32,7 +32,6 @@ const validateReadCommand = (args: string[]): CustomizedMessage => {
     if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
 
     return {
-      type: 'read',
       action: ACTIONS[dictionary[command]],
       params: {
         interval: formatDefaultDateInterval(intervals[params[0]]),
@@ -44,7 +43,6 @@ const validateReadCommand = (args: string[]): CustomizedMessage => {
     throw new CustomizedError('user_error_invalid_params_value');
 
   return {
-    type: 'read',
     action: ACTIONS[dictionary[command]],
     params: {
       interval: params.map(formatDate),
@@ -72,7 +70,7 @@ const validateFullyCreateCommand = (args: string[]): CustomizedMessage => {
   if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
 
   return {
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity,
       customized_tag,
@@ -100,7 +98,7 @@ const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
     throw new CustomizedError('admin_error_config_setting');
 
   return {
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity,
       customized_tag: command,

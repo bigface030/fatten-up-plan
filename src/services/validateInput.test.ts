@@ -15,13 +15,13 @@ test('delete the latest record', () => {
   );
   expect(() => validateInput(['刪除上一筆', '消費'])).toThrow('user_error_invalid_params_value');
   expect(validateInput(['刪除上一筆', '支出'])).toEqual({
-    type: 'delete',
+    action: 'delete_latest',
     params: {
       activity: dictionary['支出'],
     },
   });
   expect(validateInput(['刪除上一筆'])).toEqual({
-    type: 'delete',
+    action: 'delete_latest',
     params: {},
   });
 });
@@ -29,7 +29,6 @@ test('delete the latest record', () => {
 test('read balance of the records', () => {
   expect(() => validateInput(['查詢', '今日', 'ABC'])).toThrow('user_error_invalid_params_length');
   expect(validateInput(['查詢', '今日'])).toEqual({
-    type: 'read',
     action: ACTIONS[dictionary['查詢']],
     params: {
       interval: formatDefaultDateInterval(intervals['今日']),
@@ -47,21 +46,18 @@ test('read balance of the records', () => {
     'user_error_invalid_params_value',
   );
   expect(validateInput(['查詢', '20240531'])).toEqual({
-    type: 'read',
     action: ACTIONS[dictionary['查詢']],
     params: {
       interval: [formatDate('20240531')],
     },
   });
   expect(validateInput(['查詢', '20240531', '20240601'])).toEqual({
-    type: 'read',
     action: ACTIONS[dictionary['查詢']],
     params: {
       interval: ['20240531', '20240601'].map(formatDate),
     },
   });
   expect(validateInput(['查詢', '20240601', '20240531'])).toEqual({
-    type: 'read',
     action: ACTIONS[dictionary['查詢']],
     params: {
       interval: ['20240601', '20240531'].map(formatDate),
@@ -76,7 +72,7 @@ test('create record', () => {
   );
   expect(() => validateInput(['早餐', '$100'])).toThrow('user_error_invalid_params_value');
   expect(validateInput(['早餐', '100'])).toEqual({
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity: dictionary[tags['早餐'].transaction_type],
       customized_tag: '早餐',
@@ -86,7 +82,7 @@ test('create record', () => {
     },
   });
   expect(validateInput(['早餐', '100', '100'])).toEqual({
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity: dictionary[tags['早餐'].transaction_type],
       customized_tag: '早餐',
@@ -119,7 +115,7 @@ test('fully creating record', () => {
     'user_error_invalid_params_value',
   );
   expect(validateInput(['支出', '20240531', '早餐', '100'])).toEqual({
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity: dictionary['支出'],
       customized_tag: '早餐',
@@ -130,7 +126,7 @@ test('fully creating record', () => {
     },
   });
   expect(validateInput(['支出', '20240531', '早餐', '100', '100'])).toEqual({
-    type: 'create',
+    action: 'create_transaction',
     params: {
       activity: dictionary['支出'],
       customized_tag: '早餐',

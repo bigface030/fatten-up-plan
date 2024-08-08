@@ -8,19 +8,18 @@ import {
 import { DEFAULT_DATE_INTERVALS } from './constants';
 
 export interface CreateTransactionPayload {
-  type: 'create';
+  action: 'create_transaction';
   params: CreateTransactionParams;
 }
 
 interface DeleteRecordPayload {
-  type: 'delete';
+  action: 'delete_latest';
   params: DeleteRecordParams;
 }
 
 export type Action = 'read_balance' | 'read_statement';
 
 interface ReadRecordPayload<T> {
-  type: 'read';
   action: T;
   params: ReadRecordParams;
 }
@@ -61,29 +60,26 @@ export interface ReadSettlementResult {
 }
 
 interface CreateRecordResponse {
-  type: 'create';
+  action: 'create_transaction';
   result: TransactionSummary[];
 }
 
 interface DeleteRecordResponse {
-  type: 'delete';
+  action: 'delete_latest';
   result?: TransactionSummary;
 }
 
 interface ReadBalanceResponse {
-  type: 'read';
   action: 'read_balance';
   result: ReadBalanceResultWithParams;
 }
 
 interface ReadStatementResponse {
-  type: 'read';
   action: 'read_statement';
   result: ReadStatementResult;
 }
 
 interface ReadSettlementResponse {
-  type: 'read';
   action: 'read_settlement';
   result: ReadSettlementResult;
 }
@@ -109,7 +105,7 @@ export type CustomizedResponse<T> = SuccessfulResponse<T> | FailedResponse;
 export type DefaultDateInterval = (typeof DEFAULT_DATE_INTERVALS)[number];
 
 export const isCreateMsg = (msg: CustomizedMessage): msg is CreateTransactionPayload => {
-  return msg.type === 'create';
+  return msg.action === 'create_transaction';
 };
 
 export interface CustomizedChannelRequest {

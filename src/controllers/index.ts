@@ -112,19 +112,16 @@ export const messageController = async (source: MessageControllerSource): Promis
   }
 
   if (res.type === 'record') {
-    const { type } = res.body;
-    if (type === 'create') {
+    const { action } = res.body;
+    if (action === 'create_transaction') {
       return displayRecords(res.body.result, localization['create_success']);
-    } else if (type === 'delete') {
+    } else if (action === 'delete_latest') {
       if (!res.body.result) return localization['no_records'];
       return displayRecords([res.body.result], localization['delete_success']);
-    } else if (type === 'read') {
-      const { action, result } = res.body;
-      if (action === 'read_balance') {
-        return displayBalance(result);
-      } else if (action === 'read_statement') {
-        return displayStatement(result);
-      }
+    } else if (action === 'read_balance') {
+      return displayBalance(res.body.result);
+    } else if (action === 'read_statement') {
+      return displayStatement(res.body.result);
     }
 
     return 'invalid record type';

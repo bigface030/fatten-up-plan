@@ -39,24 +39,21 @@ const processRecordCRUD = async (
   service: RecordService,
 ): Promise<RecordResponseBody> => {
   const [msg] = messages;
-  const { type } = msg;
+  const { action } = msg;
 
-  if (type === 'create') {
+  if (action === 'create_transaction') {
     const createRecordsParams = messages.filter(isCreateMsg).map((msg) => msg.params);
     const result = await service.createRecords(createRecordsParams);
-    return { type, result };
-  } else if (type === 'delete') {
+    return { action, result };
+  } else if (action === 'delete_latest') {
     const result = await service.deleteRecord(msg.params);
-    return { type, result };
-  } else if (type === 'read') {
-    const { action } = msg;
-    if (action === 'read_balance') {
-      const result = await service.readBalance(msg.params);
-      return { type, action, result };
-    } else if (action === 'read_statement') {
-      const result = await service.readStatement(msg.params);
-      return { type, action, result };
-    }
+    return { action, result };
+  } else if (action === 'read_balance') {
+    const result = await service.readBalance(msg.params);
+    return { action, result };
+  } else if (action === 'read_statement') {
+    const result = await service.readStatement(msg.params);
+    return { action, result };
   }
 
   throw new CustomizedError('admin_error_invalid_record_type');
