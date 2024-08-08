@@ -85,7 +85,7 @@ const validateFullyCreateCommand = (args: string[]): CustomizedMessage => {
 const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
   const [command, ...params] = args;
 
-  if (!tags[command]) throw new CustomizedError('admin_error_invalid_tag');
+  if (!tags[command]) throw new CustomizedError('user_error_invalid_command');
 
   if (params.length < 1 || params.length > 2)
     throw new CustomizedError('user_error_invalid_params_length');
@@ -111,11 +111,24 @@ const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
 
 type Condition = (command: string) => boolean;
 type Validation = (args: string[]) => CustomizedMessage;
-type ValidationRules = Map<Condition, Validation>;
+export type ValidationRules = Map<Condition, Validation>;
 
 export const validationRules: ValidationRules = new Map([
   [(command) => command === COMMANDS.DELETE_LATEST, validateDeleteCommand],
   [(command) => [COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL].includes(command), validateReadCommand],
+  [
+    (command) => [COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(command),
+    validateFullyCreateCommand,
+  ],
+  [() => true, validateSimplyCreateCommand],
+]);
+
+export const groupValidationRules: ValidationRules = new Map([
+  [(command) => command === COMMANDS.DELETE_LATEST, validateDeleteCommand],
+  [
+    (command) => [COMMANDS.LOOK_UP, COMMANDS.CHECK_DETAIL, COMMANDS.SETTLE_UP].includes(command),
+    validateReadCommand,
+  ],
   [
     (command) => [COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(command),
     validateFullyCreateCommand,

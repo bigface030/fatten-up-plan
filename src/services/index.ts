@@ -13,19 +13,24 @@ import {
   MemberResponseBody,
   MemberResponse,
 } from './types';
-import { createInputValidator, validationRules } from './validateInput';
+import {
+  ValidationRules,
+  createInputValidator,
+  groupValidationRules,
+  validationRules,
+} from './validateInput';
 import { ChannelService, GroupChannelService, MemberService } from './channelService';
 import { GroupRecordService, RecordService } from './RecordService';
 
 import { CustomizedError, ValidationError } from '@utils/exceptions';
 
-const convertTokensToMessages = (tokenGroups: string[][]) => {
+const convertTokensToMessages = (tokenGroups: string[][], rules: ValidationRules) => {
   const MAXIMUM_TOKEN_GROUP_LENGTH = 5;
 
   if (tokenGroups.length > MAXIMUM_TOKEN_GROUP_LENGTH)
     throw new CustomizedError('user_error_invalid_multi_line_length');
 
-  const validateInput = createInputValidator(validationRules);
+  const validateInput = createInputValidator(rules);
   const messages = tokenGroups.map(validateInput);
 
   if (messages.length > 1 && !messages.every(isCreateMsg))
@@ -54,6 +59,9 @@ const processRecordCRUD = async (
   } else if (action === 'read_statement') {
     const result = await service.readStatement(msg.params);
     return { action, result };
+  } else if (action === 'read_settlement') {
+    const result = await (service as GroupRecordService).readSettlement(msg.params);
+    return { action, result };
   }
 
   throw new CustomizedError('admin_error_invalid_record_type');
@@ -62,7 +70,7 @@ const processRecordCRUD = async (
 const handleRecordRequest = async (request: CustomizedRecordRequest) => {
   const { tokenGroups, userId } = request;
 
-  const messages = convertTokensToMessages(tokenGroups);
+  const messages = convertTokensToMessages(tokenGroups, validationRules);
 
   const CS = new ChannelService({ userId });
   let channel = await CS.readChannel();
@@ -84,7 +92,7 @@ const handleGroupRecordRequest = async (request: CustomizedGroupRecordRequest) =
   const MS = new MemberService({ channelId: channel.id });
   const memberIds = await MS.getGroupMemberIds(groupId);
 
-  const messages = convertTokensToMessages(tokenGroups);
+  const messages = convertTokensToMessages(tokenGroups, groupValidationRules);
 
   const RS = new GroupRecordService({ userId, channelId: channel.id, memberIds });
   return processRecordCRUD(messages, RS);

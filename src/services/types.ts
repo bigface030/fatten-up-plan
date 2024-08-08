@@ -17,7 +17,7 @@ interface DeleteRecordPayload {
   params: DeleteRecordParams;
 }
 
-export type Action = 'read_balance' | 'read_statement';
+export type Action = 'read_balance' | 'read_statement' | 'read_settlement';
 
 interface ReadRecordPayload<T> {
   action: T;

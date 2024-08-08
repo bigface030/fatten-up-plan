@@ -4,6 +4,7 @@
   "刪除上一筆": "delete_latest",
   "支出": "expenditure",
   "收入": "income",
+  "結算": "settle_up",
   "幫助": "help",
   "標籤": "tags",
   "快速日期": "default_date_intervals"

@@ -1,10 +1,15 @@
 import { UUID } from 'crypto';
 
 import { ReadBalanceResultWithParams } from './types';
-import { operateReadBalance, operateReadStatement } from './operateUtils';
+import { operateReadBalance, operateReadSettlement, operateReadStatement } from './operateUtils';
 import { divide } from './decimalUtils';
 
-import { createTransactions, deleteLatestRecord, readRecords } from '@repositories/record';
+import {
+  createTransactions,
+  deleteLatestRecord,
+  readRecords,
+  readTransfers,
+} from '@repositories/record';
 import {
   CreateTransactionParams,
   DeleteRecordParams,
@@ -93,5 +98,17 @@ export class GroupRecordService extends RecordService {
       };
     });
     return super.createRecords(_paramsList);
+  }
+
+  public async readSettlement(params: ReadRecordParams) {
+    const readRecordsParams = {
+      ...params,
+      username: this.userId,
+      channel_id: this.channelId,
+    };
+    const records = await readTransfers(readRecordsParams);
+    const result = operateReadSettlement(records.map((record) => record.splits));
+
+    return result;
   }
 }

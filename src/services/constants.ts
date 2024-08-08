@@ -6,6 +6,7 @@ export const COMMANDS = {
   DELETE_LATEST: 'delete_latest',
   LOOK_UP: 'look_up',
   CHECK_DETAIL: 'check_detail',
+  SETTLE_UP: 'settle_up',
 };
 
 export const DEFAULT_DATE_INTERVALS = [
@@ -22,4 +23,5 @@ export const DEFAULT_DATE_INTERVALS = [
 export const ACTIONS: Record<string, Action> = {
   [COMMANDS.LOOK_UP]: 'read_balance',
   [COMMANDS.CHECK_DETAIL]: 'read_statement',
+  [COMMANDS.SETTLE_UP]: 'read_settlement',
 };
