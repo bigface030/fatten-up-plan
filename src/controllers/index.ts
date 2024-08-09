@@ -6,12 +6,14 @@ import {
   classifyTags,
   displayBalance,
   displayRecords,
+  displaySettlement,
   displayStatement,
   formatTags,
 } from './displayUtils';
 
 import { channelHandler, groupRecordHandler, memberHandler, recordHandler } from '../services';
 import { dictionary, help, intervals, localization, tags } from '@utils/fileUtils';
+import MessageApiClient from '@utils/messageApiClient';
 
 export const memberJoinEventController = async (event: line.MemberJoinEvent) => {
   const source = event.source as line.Group;
@@ -128,6 +130,24 @@ export const messageController = async (source: MessageControllerSource): Promis
       return displayBalance(res.body.result);
     } else if (action === 'read_statement') {
       return displayStatement(res.body.result);
+    } else if (action === 'read_settlement' && msgType === 'group') {
+      try {
+        const { groupId } = source;
+        const cache = new Map<string, string>();
+        const handler = async (userId: string) => {
+          const result = cache.get(userId);
+          if (!result) {
+            const { displayName } = await MessageApiClient.getGroupMemberProfile(groupId, userId);
+            cache.set(userId, displayName);
+            return displayName;
+          }
+          return result;
+        };
+        return displaySettlement(res.body.result, handler);
+      } catch (err) {
+        console.error(err);
+        return 'api_execution_failed';
+      }
     }
 
     return 'invalid record type';
