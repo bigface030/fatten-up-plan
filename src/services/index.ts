@@ -55,13 +55,13 @@ const processRecordCRUD = async (
     return { action, result };
   } else if (action === 'read_balance') {
     const result = await service.readBalance(msg.params);
-    return { action, result };
+    return { action, result: { ...result, params: msg.params } };
   } else if (action === 'read_statement') {
     const result = await service.readStatement(msg.params);
     return { action, result };
   } else if (action === 'read_settlement') {
     const result = await (service as GroupRecordService).readSettlement(msg.params);
-    return { action, result };
+    return { action, result: { ...result, params: msg.params } };
   }
 
   throw new CustomizedError('admin_error_invalid_record_type');

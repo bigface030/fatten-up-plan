@@ -1,6 +1,25 @@
 import { operateReadSettlement } from './operateUtils';
 
 test('operateReadSettlement', () => {
+  expect(operateReadSettlement([])).toEqual({ totals: {}, payments: [] });
+});
+
+test('operateReadSettlement', () => {
+  const splitList = [
+    [
+      { username: 'A', amount: 50 },
+      { username: 'B', amount: -50 },
+    ],
+    [
+      { username: 'A', amount: -50 },
+      { username: 'B', amount: 50 },
+    ],
+  ];
+  const result = { totals: { A: 0, B: 0 }, payments: [] };
+  expect(operateReadSettlement(splitList)).toEqual(result);
+});
+
+test('operateReadSettlement', () => {
   const splitList = [
     [
       { username: 'A', amount: 100 },

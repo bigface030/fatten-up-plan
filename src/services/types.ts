@@ -44,10 +44,6 @@ export interface ReadBalanceResult {
   total: number;
 }
 
-export interface ReadBalanceResultWithParams extends ReadBalanceResult {
-  params: ReadRecordParams;
-}
-
 export type ReadStatementResult = Record<string, TransactionSummary[]>;
 
 export interface ReadSettlementResult {
@@ -59,29 +55,29 @@ export interface ReadSettlementResult {
   }[];
 }
 
-interface CreateRecordResponse {
+export interface CreateRecordResponse {
   action: 'create_transaction';
   result: TransactionSummary[];
 }
 
-interface DeleteRecordResponse {
+export interface DeleteRecordResponse {
   action: 'delete_latest';
   result?: TransactionSummary;
 }
 
-interface ReadBalanceResponse {
+export interface ReadBalanceResponse {
   action: 'read_balance';
-  result: ReadBalanceResultWithParams;
+  result: ReadBalanceResult & { params: ReadRecordParams };
 }
 
-interface ReadStatementResponse {
+export interface ReadStatementResponse {
   action: 'read_statement';
   result: ReadStatementResult;
 }
 
-interface ReadSettlementResponse {
+export interface ReadSettlementResponse {
   action: 'read_settlement';
-  result: ReadSettlementResult;
+  result: ReadSettlementResult & { params: ReadRecordParams };
 }
 
 type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse | ReadSettlementResponse;

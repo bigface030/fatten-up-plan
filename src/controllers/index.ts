@@ -1,11 +1,17 @@
 import * as line from '@line/bot-sdk';
 
 import { SYSTEM_COMMANDS } from './constants';
-import { MessageControllerSource, TagConfig } from './types';
-import { dictionary, help, intervals, localization, tags } from '../utils/fileUtils';
+import { MessageControllerSource } from './types';
+import {
+  classifyTags,
+  displayBalance,
+  displayRecords,
+  displayStatement,
+  formatTags,
+} from './displayUtils';
+
 import { channelHandler, groupRecordHandler, memberHandler, recordHandler } from '../services';
-import { TransactionSummary } from '../repositories/record/types';
-import { ReadBalanceResultWithParams, ReadStatementResult } from '../services/types';
+import { dictionary, help, intervals, localization, tags } from '@utils/fileUtils';
 
 export const memberJoinEventController = async (event: line.MemberJoinEvent) => {
   const source = event.source as line.Group;
@@ -140,108 +146,4 @@ export const messageController = async (source: MessageControllerSource): Promis
   }
 
   return 'invalid res type';
-};
-
-const classifyTags = (tags: Record<string, TagConfig>) => {
-  const result: Record<string, Record<string, string[]>> = {};
-
-  for (const [tag, { transaction_type, classification }] of Object.entries(tags)) {
-    if (!result[transaction_type]) {
-      result[transaction_type] = {};
-    }
-    if (!classification) {
-      result[transaction_type]['none'] = result[transaction_type]?.['none']
-        ? [...result[transaction_type]['none'], tag]
-        : [tag];
-    } else {
-      result[transaction_type][classification] = result[transaction_type]?.[classification]
-        ? [...result[transaction_type][classification], tag]
-        : [tag];
-    }
-  }
-
-  return result;
-};
-
-const formatTags = (result: Record<string, Record<string, string[]>>) => {
-  const arr: string[] = [];
-
-  Object.entries(result).forEach(([transaction_type, { none, ...rest }], index) => {
-    arr.push(`${index + 1}. ${transaction_type}: `);
-    if (none) {
-      arr.push(none.join(', '));
-    }
-    Object.entries(rest).forEach(([classification, tags], index) => {
-      arr.push(`(${index + 1}) ${classification}: `);
-      arr.push(tags.join(', '));
-    });
-  });
-
-  return arr.join('\n');
-};
-
-const displayRecords = (records: TransactionSummary[], title: string) => {
-  if (records.length === 0) return localization['no_records'];
-
-  const arr = [title];
-
-  records.forEach(
-    ({
-      activity,
-      customized_tag,
-      amount,
-      accounting_date,
-      customized_classification,
-      description,
-    }) => {
-      arr.push(`${localization[activity]} ${customized_tag} $${amount}`);
-      const title = [
-        `${localization['date']}: ${accounting_date}`,
-        `${localization['category']}: ${customized_classification || localization['null']}`,
-        `${localization['description']}: ${description || localization['null']}`,
-      ];
-      arr.push(title.join(', '));
-    },
-  );
-
-  return arr.join('\n');
-};
-
-const displayBalance = (result: ReadBalanceResultWithParams) => {
-  const { expenditure, income, total, params } = result;
-  const { interval } = params;
-
-  if (expenditure === 0 && income === 0) return localization['no_records'];
-
-  const arr: string[] = [];
-
-  const title = [
-    `${localization['expenditure']}: $${expenditure}`,
-    `${localization['income']}: $${income}`,
-    `${localization['total']}: $${total}`,
-  ];
-  arr.push(title.join(', '));
-  const subtitle = [
-    `${localization['date']}: ${interval.toString()}`,
-    `${localization['category']}: ${localization['all']}`,
-    `${localization['description']}: ${localization['all']}`,
-  ];
-  arr.push(subtitle.join(', '));
-
-  return arr.join('\n');
-};
-
-const displayStatement = (result: ReadStatementResult) => {
-  const arr: string[] = [];
-
-  if (Object.keys(result).length === 0) return localization['no_records'];
-
-  for (const [accounting_date, recordArr] of Object.entries(result)) {
-    arr.push(accounting_date);
-    for (const { activity, amount, customized_tag } of recordArr) {
-      arr.push(`${localization[activity]} ${customized_tag} $${amount}`);
-    }
-  }
-
-  return arr.join('\n');
 };

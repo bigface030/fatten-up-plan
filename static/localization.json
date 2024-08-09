@@ -8,6 +8,7 @@
   "null": "無",
   "all": "全部",
   "no_records": "無符合查詢條件的紀錄",
+  "settled_up": "結餘為零！目前已經沒有需要分帳的款項。",
   "create_success": "新增成功",
   "delete_success": "刪除成功",
   "successfully_create_channel": "頻道新增成功！可以開始記帳囉～請輸入「幫助」以查看使用方法。",

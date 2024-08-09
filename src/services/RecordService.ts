@@ -1,6 +1,5 @@
 import { UUID } from 'crypto';
 
-import { ReadBalanceResultWithParams } from './types';
 import { operateReadBalance, operateReadSettlement, operateReadStatement } from './operateUtils';
 import { divide } from './decimalUtils';
 
@@ -62,7 +61,7 @@ export class RecordService {
       channel_id: this.channelId,
     };
     const records = await readRecords(readRecordsParams);
-    return { ...operateReadBalance(records), params } as ReadBalanceResultWithParams;
+    return operateReadBalance(records);
   }
 
   public async readStatement(params: ReadRecordParams) {
