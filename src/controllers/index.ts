@@ -137,7 +137,12 @@ export const messageController = async (source: MessageControllerSource): Promis
         const handler = async (userId: string) => {
           const result = cache.get(userId);
           if (!result) {
-            const { displayName } = await MessageApiClient.getGroupMemberProfile(groupId, userId);
+            const displayName = await MessageApiClient.getGroupMemberProfile(groupId, userId)
+              .then((res) => res.displayName)
+              .catch((err) => {
+                if (err instanceof line.HTTPFetchError && err.status === 404) return userId;
+                throw err;
+              });
             cache.set(userId, displayName);
             return displayName;
           }
