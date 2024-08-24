@@ -9,12 +9,8 @@ import {
   readRecords,
   readTransfers,
 } from '@repositories/record';
-import {
-  CreateTransactionParams,
-  DeleteRecordParams,
-  ReadRecordParams,
-  TransactionSummary,
-} from '@repositories/record/types';
+import { TransactionSummary } from '@repositories/record/types';
+import { CreateTransactionPayload, DeleteRecordPayload, ReadRecordPayload } from './types';
 
 interface RecordServiceParams {
   userId: string;
@@ -35,7 +31,7 @@ export class RecordService {
     this.channelId = channelId;
   }
 
-  public createRecords(paramsList: CreateTransactionParams[]) {
+  public createRecords(paramsList: CreateTransactionPayload['params'][]) {
     const createTransactionParamsList = paramsList.map((params) => ({
       ...params,
       username: this.userId,
@@ -44,7 +40,7 @@ export class RecordService {
     return createTransactions(createTransactionParamsList);
   }
 
-  public async deleteRecord(params: DeleteRecordParams) {
+  public async deleteRecord(params: DeleteRecordPayload['params']) {
     const deleteLatestRecordParams = {
       ...params,
       username: this.userId,
@@ -54,7 +50,7 @@ export class RecordService {
     return record as TransactionSummary | undefined;
   }
 
-  public async readBalance(params: ReadRecordParams) {
+  public async readBalance(params: ReadRecordPayload<'read_balance'>['params']) {
     const readRecordsParams = {
       ...params,
       username: this.userId,
@@ -64,7 +60,7 @@ export class RecordService {
     return operateReadBalance(records);
   }
 
-  public async readStatement(params: ReadRecordParams) {
+  public async readStatement(params: ReadRecordPayload<'read_statement'>['params']) {
     const readRecordsParams = {
       ...params,
       username: this.userId,
@@ -84,7 +80,7 @@ export class GroupRecordService extends RecordService {
     this.memberIds = memberIds;
   }
 
-  public createRecords(paramsList: CreateTransactionParams[]) {
+  public createRecords(paramsList: CreateTransactionPayload['params'][]) {
     const _paramsList = paramsList.map((params) => {
       const amount = params.activity === 'expenditure' ? -params.amount : params.amount;
       const splitAmount = divide(amount, this.memberIds.length);
@@ -99,7 +95,7 @@ export class GroupRecordService extends RecordService {
     return super.createRecords(_paramsList);
   }
 
-  public async readSettlement(params: ReadRecordParams) {
+  public async readSettlement(params: ReadRecordPayload<'read_settlement'>['params']) {
     const readRecordsParams = {
       ...params,
       username: this.userId,

@@ -1,27 +1,30 @@
 import { ChannelSummary } from '@repositories/channel/types';
-import {
-  CreateTransactionParams,
-  DeleteRecordParams,
-  ReadRecordParams,
-  TransactionSummary,
-} from '../repositories/record/types';
+import { TransactionSummary } from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
+import { Activity, TransactionActivity } from '@db/type';
 
 export interface CreateTransactionPayload {
   action: 'create_transaction';
-  params: CreateTransactionParams;
+  params: {
+    activity: TransactionActivity;
+    description?: string;
+    amount: number;
+    customized_tag: string;
+    customized_classification: string | null;
+    accounting_date?: string;
+  };
 }
 
-interface DeleteRecordPayload {
+export interface DeleteRecordPayload {
   action: 'delete_latest';
-  params: DeleteRecordParams;
+  params: { activity?: Activity };
 }
 
 export type Action = 'read_balance' | 'read_statement' | 'read_settlement';
 
-interface ReadRecordPayload<T> {
+export interface ReadRecordPayload<T> {
   action: T;
-  params: ReadRecordParams;
+  params: { interval: string[] };
 }
 
 export type CustomizedMessage =
@@ -67,7 +70,7 @@ export interface DeleteRecordResponse {
 
 export interface ReadBalanceResponse {
   action: 'read_balance';
-  result: ReadBalanceResult & { params: ReadRecordParams };
+  result: ReadBalanceResult & { params: ReadRecordPayload<'read_balance'>['params'] };
 }
 
 export interface ReadStatementResponse {
@@ -77,7 +80,7 @@ export interface ReadStatementResponse {
 
 export interface ReadSettlementResponse {
   action: 'read_settlement';
-  result: ReadSettlementResult & { params: ReadRecordParams };
+  result: ReadSettlementResult & { params: ReadRecordPayload<'read_settlement'>['params'] };
 }
 
 type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse | ReadSettlementResponse;

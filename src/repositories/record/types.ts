@@ -30,32 +30,23 @@ interface CreateRecordParams<T> {
   description?: string;
 }
 
-export interface CreateTransactionParams extends CreateRecordParams<TransactionActivity> {
-  amount: number;
-  customized_tag: string;
-  customized_classification: string | null;
-  accounting_date?: string;
-  splits?: Split[];
-}
-
-export interface CreateTransferParams extends CreateRecordParams<TransferActivity> {
-  splits: Split[];
-}
-
-export interface DeleteRecordParams {
-  activity?: Activity;
-}
-
-export interface ReadRecordParams {
-  interval: string[];
-}
-
 interface DbCommonParams {
   channel_id: UUID;
   username: string;
 }
 
-export type DbCreateTransactionParams = CreateTransactionParams & DbCommonParams;
-export type DbCreateTransferParams = CreateTransferParams & DbCommonParams;
-export type DbDeleteRecordParams = DeleteRecordParams & DbCommonParams;
-export type DbReadRecordParams = ReadRecordParams & DbCommonParams;
+export type DbCreateTransactionParams = DbCommonParams &
+  CreateRecordParams<TransactionActivity> & {
+    amount: number;
+    customized_tag: string;
+    customized_classification: string | null;
+    accounting_date?: string;
+    splits?: Split[];
+  };
+
+export type DbCreateTransferParams = DbCommonParams &
+  CreateRecordParams<TransferActivity> & { splits: Split[] };
+
+export type DbDeleteRecordParams = DbCommonParams & { activity?: Activity };
+
+export type DbReadRecordParams = DbCommonParams & { interval: string[] };
