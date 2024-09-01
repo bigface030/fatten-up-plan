@@ -62,6 +62,9 @@ const processRecordCRUD = async (
   } else if (action === 'read_settlement') {
     const result = await (service as GroupRecordService).readSettlement(msg.params);
     return { action, result: { ...result, params: msg.params } };
+  } else if (action === 'create_transfer') {
+    const [result] = await (service as GroupRecordService).createTransfers(msg.params);
+    return { action, result };
   }
 
   throw new CustomizedError('admin_error_invalid_record_type');

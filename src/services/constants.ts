@@ -3,6 +3,7 @@ import { Action } from './types';
 export const COMMANDS = {
   EXPENDITURE: 'expenditure',
   INCOME: 'income',
+  TRANSFER: 'transfer',
   DELETE_LATEST: 'delete_latest',
   LOOK_UP: 'look_up',
   CHECK_DETAIL: 'check_detail',

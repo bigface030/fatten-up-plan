@@ -1,7 +1,7 @@
 import { ChannelSummary } from '@repositories/channel/types';
-import { TransactionSummary } from '../repositories/record/types';
+import { TransactionSummary, TransferSummary } from '../repositories/record/types';
 import { DEFAULT_DATE_INTERVALS } from './constants';
-import { Activity, TransactionActivity } from '@db/type';
+import { Activity, TransactionActivity, TransferActivity } from '@db/type';
 
 export interface CreateTransactionPayload {
   action: 'create_transaction';
@@ -11,6 +11,17 @@ export interface CreateTransactionPayload {
     amount: number;
     customized_tag: string;
     customized_classification: string | null;
+    accounting_date?: string;
+  };
+}
+
+export interface CreateTransferPayload {
+  action: 'create_transfer';
+  params: {
+    activity: TransferActivity;
+    amount: number;
+    receiver_id: string;
+    description?: string;
     accounting_date?: string;
   };
 }
@@ -29,6 +40,7 @@ export interface ReadRecordPayload<T> {
 
 export type CustomizedMessage =
   | CreateTransactionPayload
+  | CreateTransferPayload
   | DeleteRecordPayload
   | ReadRecordPayload<Action>;
 
@@ -58,11 +70,17 @@ export interface ReadSettlementResult {
   }[];
 }
 
-export interface CreateRecordResponse {
+export interface CreateTransactionResponse {
   action: 'create_transaction';
   result: TransactionSummary[];
 }
 
+export interface CreateTransferResponse {
+  action: 'create_transfer';
+  result: TransferSummary;
+}
+
+// TODO: add transfer
 export interface DeleteRecordResponse {
   action: 'delete_latest';
   result?: TransactionSummary;
@@ -82,6 +100,8 @@ export interface ReadSettlementResponse {
   action: 'read_settlement';
   result: ReadSettlementResult & { params: ReadRecordPayload<'read_settlement'>['params'] };
 }
+
+type CreateRecordResponse = CreateTransactionResponse | CreateTransferResponse;
 
 type ReadRecordResponse = ReadBalanceResponse | ReadStatementResponse | ReadSettlementResponse;
 

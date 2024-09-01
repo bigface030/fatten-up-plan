@@ -10,14 +10,18 @@ const validateDeleteCommand = (args: string[]): CustomizedMessage => {
 
   if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
 
-  const activityInput: string | undefined = params[0];
-  if (activityInput && ![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput]))
+  if (params.length === 0) {
+    return { action: 'delete_latest', params: {} };
+  }
+
+  const activityInput = params[0];
+  if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput]))
     throw new CustomizedError('user_error_invalid_params_value');
 
   return {
     action: 'delete_latest',
     params: {
-      activity: dictionary[activityInput] as TransactionActivity | undefined,
+      activity: dictionary[activityInput] as TransactionActivity,
     },
   };
 };
@@ -109,6 +113,25 @@ const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
   };
 };
 
+const validateTransferCommand = (args: string[]): CustomizedMessage => {
+  const [, ...params] = args;
+
+  if (params.length < 1 || params.length > 2)
+    throw new CustomizedError('user_error_invalid_params_length');
+
+  const amount = Math.abs(Number(params[0]));
+  if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
+
+  return {
+    action: 'create_transfer',
+    params: {
+      activity: 'transfer',
+      amount,
+      receiver_id: params[1],
+    },
+  };
+};
+
 type Condition = (command: string) => boolean;
 type Validation = (args: string[]) => CustomizedMessage;
 export type ValidationRules = Map<Condition, Validation>;
@@ -133,6 +156,7 @@ export const groupValidationRules: ValidationRules = new Map([
     (command) => [COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(command),
     validateFullyCreateCommand,
   ],
+  [(command) => command === COMMANDS.TRANSFER, validateTransferCommand],
   [() => true, validateSimplyCreateCommand],
 ]);
 

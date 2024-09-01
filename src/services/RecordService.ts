@@ -5,12 +5,18 @@ import { divide } from './decimalUtils';
 
 import {
   createTransactions,
+  createTransfers,
   deleteLatestRecord,
   readRecords,
   readTransfers,
 } from '@repositories/record';
 import { TransactionSummary } from '@repositories/record/types';
-import { CreateTransactionPayload, DeleteRecordPayload, ReadRecordPayload } from './types';
+import {
+  CreateTransactionPayload,
+  CreateTransferPayload,
+  DeleteRecordPayload,
+  ReadRecordPayload,
+} from './types';
 
 interface RecordServiceParams {
   userId: string;
@@ -93,6 +99,19 @@ export class GroupRecordService extends RecordService {
       };
     });
     return super.createRecords(_paramsList);
+  }
+
+  public createTransfers(params: CreateTransferPayload['params']) {
+    const _params = {
+      ...params,
+      username: this.userId,
+      channel_id: this.channelId,
+      splits: [
+        { username: this.userId, amount: params.amount },
+        { username: params.receiver_id, amount: -params.amount },
+      ],
+    };
+    return createTransfers([_params]);
   }
 
   public async readSettlement(params: ReadRecordPayload<'read_settlement'>['params']) {

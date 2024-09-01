@@ -1,5 +1,5 @@
 import {
-  CreateRecordResponse,
+  CreateTransactionResponse,
   ReadBalanceResponse,
   ReadSettlementResponse,
   ReadStatementResponse,
@@ -45,7 +45,7 @@ export const formatTags = (result: Record<string, Record<string, string[]>>) => 
   return arr.join('\n');
 };
 
-export const displayRecords = (records: CreateRecordResponse['result'], title: string) => {
+export const displayRecords = (records: CreateTransactionResponse['result'], title: string) => {
   if (records.length === 0) return localization['no_records'];
 
   const arr = [title];
