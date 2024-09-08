@@ -147,7 +147,14 @@ export const deleteLatestRecord = async (
         FROM updated_record
         LEFT JOIN transactions ON updated_record.id = transactions.record_id AND updated_record.activity IN ($4, $5)
         LEFT JOIN splits ON updated_record.id = splits.record_id AND updated_record.activity = $6;`,
-      [username, channel_id, activity, ...ACTIVITIES],
+      [
+        username,
+        channel_id,
+        activity,
+        ACTIVITIES.EXPENDITURE,
+        ACTIVITIES.INCOME,
+        ACTIVITIES.TRANSFER,
+      ],
     )
     .then((res) => res.rows);
 

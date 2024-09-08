@@ -1,8 +1,8 @@
 import { UUID } from 'crypto';
 import { ACTIVITIES } from './constants';
 
-export type TransactionActivity = (typeof ACTIVITIES)[0] | (typeof ACTIVITIES)[1];
-export type TransferActivity = (typeof ACTIVITIES)[2];
+export type TransactionActivity = typeof ACTIVITIES.EXPENDITURE | typeof ACTIVITIES.INCOME;
+export type TransferActivity = typeof ACTIVITIES.TRANSFER;
 export type Activity = TransactionActivity | TransferActivity;
 
 export interface DbRecord {

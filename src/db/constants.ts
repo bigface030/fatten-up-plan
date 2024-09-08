@@ -1,1 +1,5 @@
-export const ACTIVITIES = ['expenditure', 'income', 'transfer'] as const;
+export const ACTIVITIES = {
+  EXPENDITURE: 'expenditure',
+  INCOME: 'income',
+  TRANSFER: 'transfer',
+} as const;

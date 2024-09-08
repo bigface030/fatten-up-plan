@@ -1,9 +1,10 @@
-import { TransactionActivity } from '@db/type';
-import { dictionary, intervals, tags } from '../utils/fileUtils';
+import { dictionary, intervals, tags } from '@utils/fileUtils';
+import { CustomizedError } from '@utils/exceptions';
+
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { formatDate, formatDefaultDateInterval, isValidDateString } from './dateUtils';
 import { CustomizedMessage } from './types';
-import { CustomizedError } from '@utils/exceptions';
+import { isActivity, isTransactionActivity } from './utils';
 
 const validateDeleteCommand = (args: string[]): CustomizedMessage => {
   const [, ...params] = args;
@@ -15,14 +16,12 @@ const validateDeleteCommand = (args: string[]): CustomizedMessage => {
   }
 
   const activityInput = params[0];
-  if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(dictionary[activityInput]))
-    throw new CustomizedError('user_error_invalid_params_value');
+  const activity = dictionary[activityInput];
+  if (!isActivity(activity)) throw new CustomizedError('user_error_invalid_params_value');
 
   return {
     action: 'delete_latest',
-    params: {
-      activity: dictionary[activityInput] as TransactionActivity,
-    },
+    params: { activity },
   };
 };
 
@@ -65,10 +64,10 @@ const validateFullyCreateCommand = (args: string[]): CustomizedMessage => {
 
   const customized_tag = params[1];
   if (!tags[customized_tag]) throw new CustomizedError('user_error_invalid_params_value');
-
-  const activity = dictionary[tags[customized_tag].transaction_type] as TransactionActivity;
-  if (activity !== dictionary[command])
-    throw new CustomizedError('user_error_invalid_params_value');
+  const activity = tags[customized_tag].transaction_type;
+  const _activity = dictionary[activity];
+  if (!isTransactionActivity(_activity)) throw new CustomizedError('admin_error_config_setting');
+  if (activity !== command) throw new CustomizedError('user_error_invalid_params_value');
 
   const amount = Math.abs(Number(params[2]));
   if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
@@ -76,7 +75,7 @@ const validateFullyCreateCommand = (args: string[]): CustomizedMessage => {
   return {
     action: 'create_transaction',
     params: {
-      activity,
+      activity: _activity,
       customized_tag,
       customized_classification: tags[customized_tag].classification,
       amount,
@@ -97,14 +96,14 @@ const validateSimplyCreateCommand = (args: string[]): CustomizedMessage => {
   const amount = Math.abs(Number(params[0]));
   if (isNaN(amount)) throw new CustomizedError('user_error_invalid_params_value');
 
-  const activity = dictionary[tags[command].transaction_type] as TransactionActivity;
-  if (![COMMANDS.EXPENDITURE, COMMANDS.INCOME].includes(activity))
-    throw new CustomizedError('admin_error_config_setting');
+  const activity = tags[command].transaction_type;
+  const _activity = dictionary[activity];
+  if (!isTransactionActivity(_activity)) throw new CustomizedError('admin_error_config_setting');
 
   return {
     action: 'create_transaction',
     params: {
-      activity,
+      activity: _activity,
       customized_tag: command,
       customized_classification: tags[command].classification,
       amount,
