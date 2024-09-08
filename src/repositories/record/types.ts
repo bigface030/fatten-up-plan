@@ -4,7 +4,7 @@ import { UUID } from 'crypto';
 export interface TransactionSummary {
   id: UUID;
   accounting_date: string; // 2024-05-31
-  activity: Activity;
+  activity: TransactionActivity;
   description: string;
   username: string;
   amount: number;
@@ -15,7 +15,7 @@ export interface TransactionSummary {
 export interface TransferSummary {
   id: UUID;
   accounting_date: string; // 2024-05-31
-  activity: Activity;
+  activity: TransferActivity;
   description: string;
   splits: Split[];
 }

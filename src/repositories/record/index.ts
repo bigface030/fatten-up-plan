@@ -1,5 +1,5 @@
 import * as db from '@db';
-import { DbRecord, DbSplit, DbTransaction } from '@db/type';
+import { DbRecord, DbSplit, DbTransaction, TransactionActivity, TransferActivity } from '@db/type';
 import { ACTIVITIES } from '@db/constants';
 
 import {
@@ -61,7 +61,7 @@ export const createTransactions = (
         return {
           id: record.id,
           accounting_date: record.accounting_date,
-          activity: record.activity,
+          activity: record.activity as TransactionActivity,
           description: record.description || '',
           username: transaction.transaction_username,
           amount: transaction.transaction_amount,
@@ -107,7 +107,7 @@ export const createTransfers = (
         return {
           id: record.id,
           accounting_date: record.accounting_date,
-          activity: record.activity,
+          activity: record.activity as TransferActivity,
           description: record.description || '',
           splits: _splits.map(({ split_username, split_amount }) => ({
             username: split_username,
@@ -212,7 +212,7 @@ export const readRecords = async (params: DbReadRecordParams): Promise<Transacti
   return records.map((record) => ({
     id: record.id,
     accounting_date: record.accounting_date,
-    activity: record.activity,
+    activity: record.activity as TransactionActivity,
     description: record.description || '',
     username: record.transaction_username,
     amount: record.transaction_amount,
@@ -244,7 +244,7 @@ export const readTransfers = async (params: DbReadRecordParams): Promise<Transfe
   const result: TransferSummary[] = [...allocations].map(([id, records]) => ({
     id,
     accounting_date: records[0].accounting_date,
-    activity: records[0].activity,
+    activity: records[0].activity as TransferActivity,
     description: records[0].description || '',
     splits: records.map(({ split_username, split_amount }) => ({
       username: split_username,

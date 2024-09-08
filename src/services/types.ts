@@ -80,10 +80,9 @@ export interface CreateTransferResponse {
   result: TransferSummary;
 }
 
-// TODO: add transfer
 export interface DeleteRecordResponse {
   action: 'delete_latest';
-  result?: TransactionSummary;
+  result?: TransactionSummary | TransferSummary;
 }
 
 export interface ReadBalanceResponse {

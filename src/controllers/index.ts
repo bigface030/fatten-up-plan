@@ -124,8 +124,13 @@ export const messageController = async (source: MessageControllerSource): Promis
     if (action === 'create_transaction') {
       return displayRecords(res.body.result, localization['create_success']);
     } else if (action === 'delete_latest') {
-      if (!res.body.result) return localization['no_records'];
-      return displayRecords([res.body.result], localization['delete_success']);
+      const result = res.body.result;
+      if (!result) return localization['no_records'];
+      if (result.activity === 'transfer') {
+        // TODO: display transfer record
+      } else {
+        return displayRecords([result], localization['delete_success']);
+      }
     } else if (action === 'read_balance') {
       return displayBalance(res.body.result);
     } else if (action === 'read_statement') {

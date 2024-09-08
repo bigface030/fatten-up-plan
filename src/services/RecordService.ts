@@ -10,7 +10,6 @@ import {
   readRecords,
   readTransfers,
 } from '@repositories/record';
-import { TransactionSummary } from '@repositories/record/types';
 import {
   CreateTransactionPayload,
   CreateTransferPayload,
@@ -52,8 +51,7 @@ export class RecordService {
       username: this.userId,
       channel_id: this.channelId,
     };
-    const record = await deleteLatestRecord(deleteLatestRecordParams);
-    return record as TransactionSummary | undefined;
+    return deleteLatestRecord(deleteLatestRecordParams);
   }
 
   public async readBalance(params: ReadRecordPayload<'read_balance'>['params']) {
