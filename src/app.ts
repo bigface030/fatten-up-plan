@@ -8,7 +8,7 @@ import {
   joinEventController,
   memberJoinEventController,
   memberLeaveEventController,
-  messageEventController,
+  messageEventRouter,
 } from './controllers';
 import MessageApiClient from '@utils/messageApiClient';
 
@@ -51,7 +51,7 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
 
 const handleEvent = async (event: line.WebhookEvent) => {
   if (event.type === 'message' && event.message.type === 'text') {
-    const text = await messageEventController(event);
+    const text = await messageEventRouter(event);
     const echo = { type: 'text' as const, text };
 
     return MessageApiClient.replyMessage({

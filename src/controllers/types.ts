@@ -13,7 +13,6 @@ type UserMessageControllerSource = { type: 'user' } & MessageControllerSourceBas
 type GroupMessageControllerSource = {
   type: 'group';
   groupId: string;
-  members: string[];
 } & MessageControllerSourceBase;
 
 export type MessageControllerSource = UserMessageControllerSource | GroupMessageControllerSource;
