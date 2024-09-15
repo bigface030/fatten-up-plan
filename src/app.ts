@@ -60,24 +60,22 @@ const handleEvent = async (event: line.WebhookEvent) => {
     });
   }
 
-  if (process.env.GROUP_RECORDING_FEATURE === 'true') {
-    if (event.type === 'join') {
-      const text = await joinEventController(event);
-      const echo = { type: 'text' as const, text };
+  if (event.type === 'join') {
+    const text = await joinEventController(event);
+    const echo = { type: 'text' as const, text };
 
-      return MessageApiClient.replyMessage({
-        replyToken: event.replyToken,
-        messages: [echo],
-      });
-    }
+    return MessageApiClient.replyMessage({
+      replyToken: event.replyToken,
+      messages: [echo],
+    });
+  }
 
-    if (event.type === 'memberJoined') {
-      await memberJoinEventController(event);
-    }
+  if (event.type === 'memberJoined') {
+    await memberJoinEventController(event);
+  }
 
-    if (event.type === 'memberLeft') {
-      await memberLeaveEventController(event);
-    }
+  if (event.type === 'memberLeft') {
+    await memberLeaveEventController(event);
   }
 
   return null;

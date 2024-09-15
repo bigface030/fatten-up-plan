@@ -55,11 +55,9 @@ export const messageEventRouter = (event: line.MessageEvent) => {
 
   if (event.source.type === 'room') return 'invalid message event';
 
-  if (process.env.GROUP_RECORDING_FEATURE === 'true') {
-    // TODO: optimize condition
-    const isReplyingChannelRequest = event.source.type === 'group' && msg.text.startsWith('@');
-    if (isReplyingChannelRequest) return channelMessageEventController(event);
-  }
+  // TODO: optimize condition
+  const isReplyingChannelRequest = event.source.type === 'group' && msg.text.startsWith('@');
+  if (isReplyingChannelRequest) return channelMessageEventController(event);
 
   return messageEventController(event);
 };
