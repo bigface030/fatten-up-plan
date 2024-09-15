@@ -1,11 +1,15 @@
+import * as line from '@line/bot-sdk';
+
 import {
   CreateTransactionResponse,
+  CreateTransferResponse,
   ReadBalanceResponse,
   ReadSettlementResponse,
   ReadStatementResponse,
 } from '@services/types';
 import { TagConfig } from './types';
 import { localization } from '@utils/fileUtils';
+import MessageApiClient from '@utils/messageApiClient';
 
 export const classifyTags = (tags: Record<string, TagConfig>) => {
   const result: Record<string, Record<string, string[]>> = {};
@@ -41,6 +45,32 @@ export const formatTags = (result: Record<string, Record<string, string[]>>) => 
       arr.push(tags.join(', '));
     });
   });
+
+  return arr.join('\n');
+};
+
+export const displayTransferReocrd = async (
+  record: CreateTransferResponse['result'],
+  title: string,
+  displayNameGetter: (userId: string) => Promise<string>,
+) => {
+  const arr = [title];
+
+  const { splits, accounting_date, description } = record;
+  const totalPromises = splits.map(async ({ username, amount }) => {
+    const displayName = await displayNameGetter(username);
+    const displayAmount = amount >= 0 ? `-$${amount}` : `+$${-amount}`;
+    return `${displayName}: ${displayAmount}`;
+  });
+  const totalOutputs = await Promise.all(totalPromises);
+  arr.push(totalOutputs.join(', '));
+
+  const paramOutputs = [
+    `${localization['date']}: ${accounting_date}`,
+    `${localization['category']}: ${localization['all']}`,
+    `${localization['description']}: ${description || localization['null']}`,
+  ];
+  arr.push(paramOutputs.join(', '));
 
   return arr.join('\n');
 };
@@ -151,4 +181,21 @@ export const displaySettlement = async (
   arr.push(paramOutputs.join(', '));
 
   return arr.join('\n');
+};
+
+const cache = new Map<string, string>();
+
+export const createDisplayNameGetter = (groupId: string) => async (userId: string) => {
+  const result = cache.get(userId);
+  if (!result) {
+    const displayName = await MessageApiClient.getGroupMemberProfile(groupId, userId)
+      .then((res) => res.displayName)
+      .catch((err) => {
+        if (err instanceof line.HTTPFetchError && err.status === 404) return userId;
+        throw err;
+      });
+    cache.set(userId, displayName);
+    return displayName;
+  }
+  return result;
 };

@@ -4,16 +4,17 @@ import { SYSTEM_COMMANDS } from './constants';
 import { MessageControllerSource } from './types';
 import {
   classifyTags,
+  createDisplayNameGetter,
   displayBalance,
   displayRecords,
   displaySettlement,
   displayStatement,
+  displayTransferReocrd,
   formatTags,
 } from './displayUtils';
 
 import { channelHandler, groupRecordHandler, memberHandler, recordHandler } from '../services';
 import { dictionary, help, intervals, localization, tags } from '@utils/fileUtils';
-import MessageApiClient from '@utils/messageApiClient';
 
 export const memberJoinEventController = async (event: line.MemberJoinEvent) => {
   const source = event.source as line.Group;
@@ -75,9 +76,20 @@ const messageEventController = async (event: line.MessageEvent) => {
   }
 
   if (event.source.type === 'group') {
+    let text = msg.text;
+
+    // TODO: handle multiple mentionees
+    const mentionee = msg.mention?.mentionees?.[0];
+    if (mentionee && mentionee.userId) {
+      text =
+        msg.text.slice(0, mentionee.index) +
+        mentionee.userId +
+        msg.text.slice(mentionee.index + mentionee.length);
+    }
+
     return messageController({
       type: 'group',
-      text: msg.text, // TODO: replace tagged name with userId
+      text,
       groupId: event.source.groupId,
       userId: event.source.userId as string,
     });
@@ -148,11 +160,25 @@ export const messageController = async (source: MessageControllerSource): Promis
   const { action } = res.body;
   if (action === 'create_transaction') {
     return displayRecords(res.body.result, localization['create_success']);
+  } else if (action === 'create_transfer') {
+    if (msgType === 'user') return 'admin_error';
+    const { groupId } = source;
+    return displayTransferReocrd(
+      res.body.result,
+      localization['create_success'],
+      createDisplayNameGetter(groupId),
+    );
   } else if (action === 'delete_latest') {
     const result = res.body.result;
     if (!result) return localization['no_records'];
     if (result.activity === 'transfer') {
-      // TODO: display transfer record
+      if (msgType === 'user') return 'admin_error';
+      const { groupId } = source;
+      return displayTransferReocrd(
+        result,
+        localization['delete_success'],
+        createDisplayNameGetter(groupId),
+      );
     } else {
       return displayRecords([result], localization['delete_success']);
     }
@@ -163,22 +189,7 @@ export const messageController = async (source: MessageControllerSource): Promis
   } else if (action === 'read_settlement' && msgType === 'group') {
     try {
       const { groupId } = source;
-      const cache = new Map<string, string>();
-      const handler = async (userId: string) => {
-        const result = cache.get(userId);
-        if (!result) {
-          const displayName = await MessageApiClient.getGroupMemberProfile(groupId, userId)
-            .then((res) => res.displayName)
-            .catch((err) => {
-              if (err instanceof line.HTTPFetchError && err.status === 404) return userId;
-              throw err;
-            });
-          cache.set(userId, displayName);
-          return displayName;
-        }
-        return result;
-      };
-      return displaySettlement(res.body.result, handler);
+      return displaySettlement(res.body.result, createDisplayNameGetter(groupId));
     } catch (err) {
       console.error(err);
       return 'api_execution_failed';
