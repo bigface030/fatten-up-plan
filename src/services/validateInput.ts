@@ -3,25 +3,25 @@ import { CustomizedError } from '@utils/exceptions';
 
 import { ACTIONS, COMMANDS, DEFAULT_DATE_INTERVALS } from './constants';
 import { formatDate, formatDefaultDateInterval, isValidDateString } from './dateUtils';
-import { CustomizedMessage } from './types';
+import { CustomizedMessage, DeleteRecordPayload, ReadRecordPayload , Action} from './types';
 import { isActivity, isTransactionActivity } from './utils';
 
-const validateDeleteCommand = (args: string[]): CustomizedMessage => {
-  const [, ...params] = args;
+const validateDeleteCommand = (args: string[]): DeleteRecordPayload => {
+  const [, ...commandParams] = args;
 
-  if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
+  const messageParams = {} as DeleteRecordPayload['params'];
 
-  if (params.length === 0) {
-    return { action: 'delete_latest', params: {} };
+  if (commandParams.length > 1) throw new CustomizedError('user_error_invalid_params_length');
+
+  if (commandParams.length === 1) {
+    const activity = dictionary[commandParams[0]];
+    if (!isActivity(activity)) throw new CustomizedError('user_error_invalid_params_value');
+    messageParams.activity = activity;
   }
-
-  const activityInput = params[0];
-  const activity = dictionary[activityInput];
-  if (!isActivity(activity)) throw new CustomizedError('user_error_invalid_params_value');
 
   return {
     action: 'delete_latest',
-    params: { activity },
+    params: messageParams,
   };
 };
 
@@ -31,25 +31,22 @@ const validateReadCommand = (args: string[]): CustomizedMessage => {
   if (params.length < 1 || params.length > 2)
     throw new CustomizedError('user_error_invalid_params_length');
 
+  const messageParams = {} as ReadRecordPayload<Action>['params'];
+
   if (DEFAULT_DATE_INTERVALS.includes(intervals[params[0]])) {
     if (params.length > 1) throw new CustomizedError('user_error_invalid_params_length');
-
-    return {
-      action: ACTIONS[dictionary[command]],
-      params: {
-        interval: formatDefaultDateInterval(intervals[params[0]]),
-      },
-    };
+    messageParams.interval = formatDefaultDateInterval(intervals[params[0]])
   }
 
-  if (!params.every(isValidDateString))
+  if (params.every(isValidDateString)) {
+    messageParams.interval = params.map(formatDate)
+  } else {
     throw new CustomizedError('user_error_invalid_params_value');
+  }
 
   return {
     action: ACTIONS[dictionary[command]],
-    params: {
-      interval: params.map(formatDate),
-    },
+    params: messageParams,
   };
 };
 
