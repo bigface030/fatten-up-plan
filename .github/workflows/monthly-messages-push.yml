@@ -1,0 +1,59 @@
+name: Push Monthly Messages
+
+on:
+  schedule:
+    # Run at 12:00 PM UTC+8 (00:00 UTC)
+    - cron: '0 4 28-31 * *'
+  workflow_dispatch: # Allow manual triggering if needed
+    inputs:
+      message:
+        description: 'Message to push'
+        required: false
+        type: string
+
+jobs:
+  push_monthly_messages:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check if requires last-day check
+        run: |
+          echo "⏰ Scheduled run: checking if today is last day of the month"
+          if [ "$(date -d tomorrow +%d)" = "01" ]; then
+            echo "✅ It's the last day. Proceeding."
+          else
+            echo "🚫 Not the last day. Exiting."
+            exit 0
+          fi
+      - name: Push messages
+        run: |
+          curl -X POST https://api.line.me/v2/bot/message/push \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ secrets.CHANNEL_ACCESS_TOKEN }}' \
+            -d '{
+                "to": "${{ vars.RECEIPIENT_ID }}",
+                "messages":[
+                    {
+                        "type":"text",
+                        "text":"${{ vars.MESSAGES }}"
+                    } 
+                ]
+            }'
+  push_message:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Push messages
+        run: |
+          curl -X POST https://api.line.me/v2/bot/message/push \
+            -H 'Content-Type: application/json' \
+            -H 'Authorization: Bearer ${{ secrets.CHANNEL_ACCESS_TOKEN }}' \
+            -d '{
+                "to": "${{ vars.RECEIPIENT_ID }}",
+                "messages":[
+                    {
+                        "type":"text",
+                        "text":"${{ inputs.message }}"
+                    } 
+                ]
+            }'
