@@ -3,7 +3,8 @@ name: Push Monthly Messages
 on:
   schedule:
     # Run at 12:00 PM UTC+8 (00:00 UTC)
-    - cron: '0 4 28-31 * *'
+    # - cron: '0 4 28-31 * *'
+    - cron: '10 14 28-31 * *'
   workflow_dispatch: # Allow manual triggering if needed
     inputs:
       message:
@@ -19,7 +20,7 @@ jobs:
       - name: Check if requires last-day check
         run: |
           echo "⏰ Scheduled run: checking if today is last day of the month"
-          if [ "$(date -d tomorrow +%d)" = "01" ]; then
+          if [ "$(date -d tomorrow +%d)" = "31" ]; then
             echo "✅ It's the last day. Proceeding."
           else
             echo "🚫 Not the last day. Exiting."
