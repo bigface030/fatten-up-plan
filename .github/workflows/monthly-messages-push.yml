@@ -17,15 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check if requires last-day check
+        id: check
         run: |
           echo "⏰ Scheduled run: checking if today is last day of the month"
           if [ "$(date -d tomorrow +%d)" = "01" ]; then
             echo "✅ It's the last day. Proceeding."
+            echo "is_last_day=true" >> $GITHUB_OUTPUT
           else
             echo "🚫 Not the last day. Exiting."
+            echo "is_last_day=false" >> $GITHUB_OUTPUT
             exit 0
           fi
       - name: Push messages
+        if: steps.check.outputs.is_last_day == 'true'
         run: |
           curl -X POST https://api.line.me/v2/bot/message/push \
             -H 'Content-Type: application/json' \
